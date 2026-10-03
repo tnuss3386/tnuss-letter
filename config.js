@@ -1,5 +1,5 @@
 // ★ GASで発行した「ウェブアプリのURL」（https://script.google.com/macros/s/.../exec）に置き換えてください
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbypxCqu35aBzFiHcja0M8etSw4Fpo37ki2sNGy_FRGAa8_5i0_okLfeXY3Qe08Hy7GLWw/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycby_rHW-2-bZbpRXBboyv81g6qfNtPW4GMTTg6f4WLD6G5D73C_g81SIeN11QnxxDhdE/exec';
 
 // ★ 欠席届など、既存のGoogleフォームへのボタン（保護者の画面の下に、「連絡・配布物」の隣へ並びます）。使わないなら [] のままで構いません。
 //   label  : ボタンの名前（短く。3文字〜5文字くらい）
