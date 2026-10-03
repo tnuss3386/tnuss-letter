@@ -187,6 +187,7 @@ a.row { text-decoration: none; color: var(--label); }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 6px; background: var(--fill-2); color: var(--label); font-size: .75rem; font-weight: 700; line-height: 1.55; }
 .tag.new { background: var(--warm); color: var(--warm-ink); box-shadow: inset 0 0 0 1px rgba(122, 52, 16, .25); }
 .tag.warn { background: var(--warm); color: var(--orange); }
+.tag.reject { background: #fbe4e1; color: var(--red, #b3261e); }
 .tag.ok { background: var(--sage-soft); color: var(--green); }
 .tag.info { background: var(--tint-soft); color: var(--tint); }
 /* 月ごとの開閉。閉じた月も、件数と未読数が見える */

@@ -11,7 +11,7 @@
 
   var SHEET_COLOR = '#2f7d6d';   // 「行事予定」シートの行事の色（連絡の行事とは別の色）
 
-  function posts() { return (S.role === 'teacher' ? S.tposts : S.posts) || []; }
+  function posts() { return ((S.role === 'teacher' ? S.tposts : S.posts) || []).filter(function (p) { return !p.status; }); }
 
   /** { 'yyyy-MM-dd': [{post, kind}] } */
   function buildEvents() {

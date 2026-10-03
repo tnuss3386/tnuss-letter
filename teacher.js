@@ -9,13 +9,54 @@
   function who(c) { return '<span>' + esc(c.name) + ' <small>' + esc(L.fmt.cls(c)) + '</small></span>'; }
 
   // ---------- 詳細の下に出す管理パネル ----------
+  // 承認の状態（承認待ち・差し戻し）の案内と、管理者の承認ボタン
+  function approvalHtml(p) {
+    if (!p.status) return '';
+    var admin = S.perm === '管理者';
+    if (p.status === '承認待ち') {
+      var h = '<div class="section"><div class="banner warn">' + L.icon('clock') + '<div><b>承認待ちです。</b><br>' +
+        (admin ? '内容を確認して、承認すると保護者に公開されます。差し戻すと、投稿した先生が直せます。' : '管理者が承認すると、保護者に公開されます。まだ保護者には見えません。') + '</div></div>';
+      if (admin) {
+        h += '<div class="group"><button class="row tint" data-act="approve" data-id="' + esc(p.id) + '">' + L.icon('check') + '<span class="row-label">承認して公開する</span></button>' +
+          '<button class="row destructive" data-act="reject" data-id="' + esc(p.id) + '">' + L.icon('close') + '<span class="row-label">差し戻す</span></button></div>';
+      }
+      return h + '</div>';
+    }
+    return '<div class="section"><div class="banner warn">' + L.icon('info') + '<div><b>差し戻されました。</b>' + (p.rejectReason ? '<br>理由：' + esc(p.rejectReason) : '') +
+      '<br>直して「保存」すると、もう一度承認待ちになります。</div></div></div>';
+  }
+
+  L.acts.approve = function (el) {
+    var id = el.getAttribute('data-id'), p = L.findPost(id);
+    L.ui.confirm({ title: '承認して公開しますか？', message: p ? '「' + p.title + '」\nすぐに保護者へ公開されます（緊急の連絡は、通知も送られます）。' : '', confirm: '承認して公開' }).then(function (ok) {
+      if (!ok) return;
+      L.api('approvePost', { token: L.token(), postId: id, approve: true }).then(function (res) {
+        if (!res.ok) { L.ui.toast(res.error, true); return; }
+        L.ui.toast('承認して公開しました');
+        L.refresh();
+      }).catch(function () { L.ui.toast('通信できませんでした', true); });
+    });
+  };
+
+  L.acts.reject = function (el) {
+    var id = el.getAttribute('data-id');
+    var reason = window.prompt('差し戻しの理由（投稿した先生に表示されます。空欄でも可）', '');
+    if (reason === null) return;
+    L.api('approvePost', { token: L.token(), postId: id, approve: false, reason: reason }).then(function (res) {
+      if (!res.ok) { L.ui.toast(res.error, true); return; }
+      L.ui.toast('差し戻しました');
+      L.refresh();
+    }).catch(function () { L.ui.toast('通信できませんでした', true); });
+  };
+
   T.panelHtml = function (p) {
-    var h = '<div class="section"><div class="group-header">配信</div><div class="group">' +
+    var h = approvalHtml(p) + '<div class="section"><div class="group-header">配信</div><div class="group">' +
       '<div class="row"><span class="row-label">配信対象</span><span class="row-value">' + esc(p.targetLabel || '') + '</span></div>' +
       (p.scheduled ? '<div class="row"><span class="row-label">公開予定</span><span class="row-value">' + esc(L.fmt.mdhm(p.date)) + '</span></div>' : '') +
       (p.lastRemind ? '<div class="row"><span class="row-label">前回の催促</span><span class="row-value">' + esc(L.fmt.mdhm(p.lastRemind)) + '</span></div>' : '') +
       '</div></div>';
-    if (!p.scheduled) h += '<div id="statsBox" class="section"><div class="skeleton" style="margin:0"></div></div>';
+    if (!p.scheduled && !p.status) h += '<div id="statsBox" class="section"><div class="skeleton" style="margin:0"></div></div>';
+    if (!p.canEdit) return h + (S.perm === '閲覧のみ' ? '' : '<div class="section"><div class="group-footer">この投稿の編集・削除は、投稿した先生か管理者のみ行えます。</div></div>');
     h += '<div class="section"><div class="group">' +
       '<button class="row tint" data-act="editPost" data-id="' + esc(p.id) + '">' + L.icon('compose') + '<span class="row-label">この投稿を編集</span></button>' +
       '<button class="row destructive" data-act="deletePost" data-id="' + esc(p.id) + '">' + L.icon('trash') + '<span class="row-label">この投稿を削除</span></button></div>' +
@@ -24,7 +65,7 @@
   };
 
   T.bindPanel = function (root, p) {
-    if (p.scheduled) return;
+    if (p.scheduled || p.status) return;
     L.api('getPostStats', { token: L.token(), postId: p.id }).then(function (st) {
       var box = document.getElementById('statsBox');
       if (!box) return;
@@ -344,7 +385,7 @@
       onClose: function () { if (onSelect) document.removeEventListener('selectionchange', onSelect); },
       title: post ? '投稿を編集' : '新規投稿',
       left: { label: 'キャンセル', onTap: function () { tryClose(); } },
-      right: { label: post ? '保存' : '投稿', onTap: function () { submit(); } },
+      right: { label: post ? '保存' : (S.perm === '要承認' ? '承認を依頼' : '投稿'), onTap: function () { submit(); } },
       body: '<div style="height:4px"></div>' + order.map(function (k) { return '<div id="s-' + k + '"></div>'; }).join('') + '<div style="height:40px"></div>'
     });
     var root = sheet.body;
@@ -561,7 +602,7 @@
       }).then(function (res) {
         if (!res.ok) { sheet.setRight(null, false); L.ui.toast(res.error, true); return; }
         sheet.close();
-        L.ui.toast(C.editing ? '保存しました' : res.scheduled ? '予約投稿しました' : '投稿しました');
+        L.ui.toast(res.pending ? '承認待ちにしました。管理者が承認すると公開されます' : C.editing ? '保存しました' : res.scheduled ? '予約投稿しました' : '投稿しました');
         L.refresh();
       }).catch(function () {
         sheet.setRight(null, false);

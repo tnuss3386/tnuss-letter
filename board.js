@@ -58,6 +58,13 @@
     return o.closed ? '<span class="tag">終了</span>' : '<span class="tag warn">要予約</span>';
   }
 
+  function statusTag(p) {
+    if (p.status === '承認待ち') return '<span class="tag warn">承認待ち</span>';
+    if (p.status === '差戻し') return '<span class="tag reject">差し戻し</span>';
+    return '';
+  }
+  L.statusTag = statusTag;
+
   function rowHtml(p) {
     var teacher = S.role === 'teacher';
     var unread = !teacher && !p.read;
@@ -73,7 +80,7 @@
     return '<button class="row post-row' + (unread ? ' unread' : '') + '" data-act="open" data-id="' + esc(p.id) + '">' +
       '<span class="unread-dot"></span>' +
       '<span class="row-main">' +
-      '<span class="row-meta">' + badge(p.category) + fromTag(p) + (p.scheduled ? '<span class="tag warn">予約中</span>' : '') + (isNew ? '<span class="tag new">NEW</span>' : '') + optionTag(p) + '<span>' + esc(when) + '</span></span>' +
+      '<span class="row-meta">' + badge(p.category) + fromTag(p) + statusTag(p) + (p.scheduled ? '<span class="tag warn">予約中</span>' : '') + (isNew ? '<span class="tag new">NEW</span>' : '') + optionTag(p) + '<span>' + esc(when) + '</span></span>' +
       '<span class="row-title">' + esc(p.title) + '</span>' +
       (sub.length ? '<span class="row-sub">' + esc(sub.join('　')) + '</span>' : '') +
       '</span>' + L.icon('chevR', 'chev') + '</button>';
@@ -86,7 +93,7 @@
 
   function isFiltering() {
     var f = S.filter;
-    return !!(f.q.trim() || f.cat !== 'ALL' || f.from || f.unread || f.scheduled);
+    return !!(f.q.trim() || f.cat !== 'ALL' || f.from || f.unread || f.scheduled || f.pending);
   }
 
   // 月ごとにまとめ、古い月は閉じておく（開閉は押して切り替え。未読がある月は、閉じていても件数でわかる）
@@ -187,6 +194,7 @@
       if (f.from && p.sender !== f.from) return false;
       if (f.unread && p.read) return false;
       if (f.scheduled && !p.scheduled) return false;
+      if (f.pending && !p.status) return false;
       return !q || haystack(p).indexOf(q) !== -1;
     });
   }
@@ -201,6 +209,8 @@
       var un = src.filter(function (p) { return !p.read; }).length;
       h += '<button class="chip' + (f.unread ? ' on' : '') + '" data-act="chipUnread">未読<span class="n">' + un + '</span></button>';
     } else {
+      var pd = src.filter(function (p) { return p.status; }).length;
+      if (pd) h += '<button class="chip' + (f.pending ? ' on' : '') + '" data-act="chipPending">' + (S.perm === '管理者' ? '承認待ち・差し戻し' : '承認待ち・差し戻し') + '<span class="n">' + pd + '</span></button>';
       var sc = src.filter(function (p) { return p.scheduled; }).length;
       if (sc) h += '<button class="chip' + (f.scheduled ? ' on' : '') + '" data-act="chipScheduled">予約中<span class="n">' + sc + '</span></button>';
     }
@@ -270,10 +280,21 @@
 
   function resetView() { monthOpen = {}; monthLimit = {}; allToggle = null; }
   L.acts.chipFrom = function (el) { var n = el.getAttribute('data-from'); S.filter.from = S.filter.from === n ? '' : n; resetView(); drawList(); };
-  L.acts.chipAll = function () { S.filter.from = ''; S.filter.cat = 'ALL'; S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
+  L.acts.chipPending = function () { S.filter.pending = !S.filter.pending; S.filter.cat = 'ALL'; S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
+  L.acts.chipAll = function () { S.filter.pending = false; S.filter.from = ''; S.filter.cat = 'ALL'; S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
   L.acts.chipUnread = function () { S.filter.unread = !S.filter.unread; S.filter.cat = 'ALL'; resetView(); drawList(); };
   L.acts.chipScheduled = function () { S.filter.scheduled = !S.filter.scheduled; S.filter.cat = 'ALL'; resetView(); drawList(); };
   L.acts.chipCat = function (el) { S.filter.cat = el.getAttribute('data-cat'); S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
+
+  // 管理者: 承認待ちがあるとき、一覧の一番上に知らせる
+  function approvalBannerHtml() {
+    if (S.role !== 'teacher' || S.perm !== '管理者' || S.viewFy) return '';
+    var n = (S.tposts || []).filter(function (p) { return p.status === '承認待ち'; }).length;
+    if (!n) return '';
+    return '<div class="banner warn" id="approvalBanner">' + L.icon('bell') + '<div style="flex:1"><b>承認待ちの投稿が' + n + '件あります。</b>' +
+      '<div style="margin-top:10px"><button class="btn small" data-act="showPending">確認する</button></div></div></div>';
+  }
+  L.acts.showPending = function () { S.filter.pending = true; S.filter.cat = 'ALL'; S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
 
   // 年度の表示。過去の年度を見ているときは、帯で知らせて、今年度に戻れるようにする
   function yearBarHtml() {
@@ -291,7 +312,7 @@
       return { nav: { title: '連絡' }, html: '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>' };
     }
     resetView();
-    var html = pushBannerHtml() + '<div id="yearBar">' + yearBarHtml() + '</div>' +
+    var html = pushBannerHtml() + approvalBannerHtml() + '<div id="yearBar">' + yearBarHtml() + '</div>' +
       '<div class="search' + (S.filter.q ? ' has-text' : '') + '">' + L.icon('search', 'mag') +
       '<input id="q" type="search" placeholder="検索" value="' + esc(S.filter.q) + '" enterkeyhint="search" autocomplete="off">' +
       '<button class="clear" data-act="clearSearch" aria-label="消す">' + L.icon('xmark') + '</button></div>' +
@@ -424,7 +445,7 @@
     }
     var teacher = S.role === 'teacher';
     var html = '<div class="detail-meta">' + badge(p.category) + fromTag(p) +
-      (p.scheduled ? '<span class="tag warn">公開予定</span>' : '') +
+      statusTag(p) + (p.scheduled ? '<span class="tag warn">公開予定</span>' : '') +
       '<span>' + esc(L.fmt.mdhm(p.date)) + '</span>' +
       (p.edited ? '<span>・編集済み</span>' : '') + '</div>' +
       '<h1 class="detail-title">' + esc(p.title) + '</h1>' + eventChipHtml(p) +

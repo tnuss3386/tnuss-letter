@@ -149,6 +149,7 @@
       S.classes = state.classes || [];
       S.students = state.students || [];
       S.senders = state.senders || [];
+      S.perm = state.perm || 'poster';
       S.events = state.events || [];
       S.defaultSender = state.defaultSender || '';
     }
@@ -166,6 +167,7 @@
       S.curFy = res.fy || S.curFy;
       S.years = res.years || S.years;
       L.store.cacheSet('tposts', res.posts);
+      updateBadge();
       if (forceRender || !prev || !same(prev, res.posts)) render(null, true);
     }).catch(function () {
       if (S.tposts) setOffline(true);
@@ -308,14 +310,22 @@
     $view.classList.toggle('no-tabbar', !on);
   }
 
+  // 管理者: 承認待ちの投稿の数（メールではなく、アプリの中の印と、アイコンのバッジでお知らせする）
+  function pendingApprovals() {
+    if (S.role !== 'teacher' || S.perm !== '管理者') return 0;
+    return (S.tposts || []).filter(function (p) { return p.status === '承認待ち'; }).length;
+  }
+  L.counts = L.counts || {};
+  L.counts.approvals = pendingApprovals;
+
   function unreadCount() { return S.posts.filter(function (p) { return !p.read; }).length; }
   function pendingSurveys() { return S.posts.filter(function (p) { return p.option && p.option.type === 'survey' && !p.option.answered && !p.option.closed; }).length; }
   function pendingInterviews() { return S.posts.filter(function (p) { return p.option && p.option.type === 'interview' && !p.option.mySlot && !p.option.closed; }).length; }
   L.counts = { unread: unreadCount, surveys: pendingSurveys, interviews: pendingInterviews };
 
   function updateBadge() {
-    if (S.role !== 'parent') return;
-    var n = unreadCount() + pendingSurveys() + pendingInterviews();
+    if (S.role !== 'parent' && !(S.role === 'teacher' && S.perm === '管理者')) return;
+    var n = S.role === 'teacher' ? pendingApprovals() : unreadCount() + pendingSurveys() + pendingInterviews();
     if (n > 0 && navigator.setAppBadge) navigator.setAppBadge(n).catch(function () {});
     else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () {});
   }
@@ -336,7 +346,7 @@
   /** 下のメニュー（スマホ）とサイドバー（PC）で共通の、移動先の一覧 */
   function navItems() {
     var items = [];
-    items.push({ kind: 'tab', id: 'home', label: '連絡', icon: 'notice', badge: S.role === 'parent' ? unreadCount() : 0 });
+    items.push({ kind: 'tab', id: 'home', label: '連絡', icon: 'notice', badge: S.role === 'parent' ? unreadCount() : pendingApprovals() });
     items.push({ kind: 'tab', id: 'cal', label: '予定', icon: 'calendar' });
     if (S.role === 'parent') {
       items.push({ kind: 'tab', id: 'survey', label: 'アンケート', icon: 'survey', badge: pendingSurveys() });
@@ -345,7 +355,7 @@
       if (forms.length === 1) items.push({ kind: 'tab', id: 'form', label: forms[0].label, icon: forms[0].icon || 'link', idx: 0 });
       else if (forms.length > 1) items.push({ kind: 'forms', id: 'form', label: '届け出', icon: 'link' });
     } else {
-      items.push({ kind: 'compose', label: '作成', icon: 'compose' });
+      if (S.perm !== '閲覧のみ') items.push({ kind: 'compose', label: '作成', icon: 'compose' });
     }
     return items;
   }
@@ -368,7 +378,7 @@
     var collapsed = sidebarCollapsed();
     var h = '<aside class="sidebar" aria-label="メニュー">' +
       '<div class="sb-brand"><img src="icons/crest.png" alt=""><div class="t"><b class="wordmark">' + wordmark() + '</b>' + (school ? '<span>' + esc(school) + '</span>' : '') + '</div></div>';
-    if (S.role === 'teacher') h += '<button class="sb-primary" data-act="compose" title="新規投稿">' + L.icon('compose') + '<span>新規投稿</span></button>';
+    if (S.role === 'teacher' && S.perm !== '閲覧のみ') h += '<button class="sb-primary" data-act="compose" title="新規投稿">' + L.icon('compose') + '<span>新規投稿</span></button>';
     if (S.role === 'parent' && S.children.length > 1) {
       h += '<button class="sb-item sb-who" data-act="switchChild" title="子どもを切り替える">' + L.icon('person') +
         '<span class="sb-label">' + esc(S.child.name) + '<small>' + esc(L.fmt.cls(S.child)) + '</small></span>' + L.icon('chevD') + '</button><div class="sb-sep"></div>';
@@ -397,7 +407,7 @@
     if (!cfg.back && S.role === 'parent' && S.children.length > 1) {
       right += '<button class="nb-child" data-act="switchChild" aria-label="子どもを切り替える（いま：' + esc(S.child.name) + '）"><span>' + esc(S.child.name) + '</span>' + L.icon('chevD') + '</button>';
     }
-    if (S.role === 'teacher' && !cfg.hideCompose) {
+    if (S.role === 'teacher' && !cfg.hideCompose && S.perm !== '閲覧のみ') {
       right += '<button class="nb-btn" data-act="compose" aria-label="新規投稿">' + L.icon('compose') + '</button>';
     }
     right += '<button class="nb-btn" data-act="account" aria-label="アカウント"><span class="nb-avatar">' + L.icon('person') + '</span></button>';
@@ -710,6 +720,19 @@
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible' && S.role && Date.now() - S.lastFetch > REFRESH_AFTER_MS) L.refresh();
   });
+  // 開いたままのときも、一定の間隔で最新に更新する（先生は1分、保護者は3分）。
+  // 画面が隠れているとき、投稿画面や確認ウィンドウを開いているとき、文字を入力しているときは更新しない。
+  var AUTO_REFRESH_MS = { teacher: 60 * 1000, parent: 3 * 60 * 1000 };
+  var refreshing = false;
+  setInterval(function () {
+    if (!S.role || refreshing || document.visibilityState !== 'visible') return;
+    if (Date.now() - S.lastFetch < AUTO_REFRESH_MS[S.role]) return;
+    if (document.body.classList.contains('sheet-open')) return;
+    var a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
+    refreshing = true;
+    Promise.resolve(L.refresh()).then(function () { refreshing = false; }, function () { refreshing = false; });
+  }, 15 * 1000);
   // 通知を押してアプリが開かれたとき、その投稿へ移動する
   window.addEventListener('letter:push', function () { if (S.role) L.refresh(); });
   if ('serviceWorker' in navigator) {
