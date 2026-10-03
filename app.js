@@ -17,7 +17,7 @@
     role: null, name: '', categories: [],
     children: [], child: null, posts: [],
     grades: [], classes: [], students: [], tposts: null,
-    years: [], curFy: null, viewFy: null, archive: null,   // 年度: viewFy が null なら今年度。過去の年度は archive に読み込む
+    events: [], years: [], curFy: null, viewFy: null, archive: null,   // 年度: viewFy が null なら今年度。過去の年度は archive に読み込む
     tab: 'home', detail: null, offline: false,
     filter: { cat: 'ALL', unread: false, scheduled: false, q: '' },
     lastFetch: 0, scrollByTab: {}
@@ -140,6 +140,7 @@
       S.children = state.children && state.children.length ? state.children : [state.current];
       S.child = state.current;
       S.posts = state.posts || [];
+      S.events = state.events || [];
       S.curFy = state.fy || S.curFy;
       S.years = state.years || S.years;
       S.serverOffset = state.serverTime ? new Date(state.serverTime).getTime() - Date.now() : 0;
@@ -148,6 +149,7 @@
       S.classes = state.classes || [];
       S.students = state.students || [];
       S.senders = state.senders || [];
+      S.events = state.events || [];
       S.defaultSender = state.defaultSender || '';
     }
   }

@@ -9,6 +9,8 @@
   var tp = today.split('-');
   S.cal = { y: +tp[0], m: +tp[1], sel: today };
 
+  var SHEET_COLOR = '#2f7d6d';   // 「行事予定」シートの行事の色（連絡の行事とは別の色）
+
   function posts() { return (S.role === 'teacher' ? S.tposts : S.posts) || []; }
 
   /** { 'yyyy-MM-dd': [{post, kind}] } */
@@ -22,6 +24,11 @@
         while (d <= end && n < 62) { add(d, p, 'event'); d = L.jst.addDays(d, 1); n++; }
       }
       if (p.option && p.option.deadline && !p.option.closed) add(L.fmt.ymd(p.option.deadline), p, 'deadline');
+    });
+    // 「行事予定」シートの行事（連絡の投稿はない）
+    (S.events || []).forEach(function (ev) {
+      var d = ev.date, n = 0;
+      while (d <= ev.end && n < 62) { add(d, ev, 'sheet'); d = L.jst.addDays(d, 1); n++; }
     });
     return map;
   }
@@ -46,7 +53,7 @@
       var evs = events[cell.ymd] || [];
       var colors = [];
       evs.forEach(function (e) {
-        var col = e.kind === 'deadline' ? '#ff9500' : L.catColor(e.post.category);
+        var col = e.kind === 'deadline' ? '#ff9500' : e.kind === 'sheet' ? SHEET_COLOR : L.catColor(e.post.category);
         if (colors.indexOf(col) === -1 && colors.length < 3) colors.push(col);
       });
       var dow = i % 7;
@@ -59,6 +66,13 @@
   }
 
   function eventRow(e) {
+    if (e.kind === 'sheet') {
+      var ev = e.post;
+      var range = ev.end !== ev.date ? L.fmt.ymdLabel(ev.date) + ' 〜 ' + L.fmt.ymdLabel(ev.end) : '';
+      var meta = [ev.sender, range, ev.target && S.role === 'teacher' ? '対象：' + ev.target : '', ev.note].filter(String).join('　');
+      return '<div class="row cal-ev static"><span class="bar" style="--c:' + SHEET_COLOR + '"></span>' +
+        '<span class="row-main"><span class="row-title">' + esc(ev.title) + '</span>' + (meta ? '<span class="when">' + esc(meta) + '</span>' : '') + '</span></div>';
+    }
     var p = e.post;
     var color = e.kind === 'deadline' ? '#ff9500' : L.catColor(p.category);
     var label = e.kind === 'deadline'
