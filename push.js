@@ -72,6 +72,7 @@
           registration.showNotification(d.title || ((typeof APP_TITLE !== 'undefined' && APP_TITLE) || 'TNUSS Bridge'), {
             body: d.body || '',
             icon: 'icons/icon-192.png',
+            badge: 'icons/badge.png',
             tag: d.tag || 'letter',
             data: { url: d.url || '' }
           });

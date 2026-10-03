@@ -5,6 +5,8 @@ importScripts('../config.js');
 
 var APP_ROOT = new URL('../', self.registration.scope).href;
 var ICON = APP_ROOT + 'icons/icon-192.png';
+// Androidの通知の小さいアイコン（画面左上）は、透明な背景に白いシルエットの専用画像が必要
+var BADGE = APP_ROOT + 'icons/badge.png';
 
 firebase.initializeApp(FIREBASE_CONFIG);
 var messaging = firebase.messaging();
@@ -15,7 +17,7 @@ messaging.onBackgroundMessage(function (payload) {
   return self.registration.showNotification(d.title || 'TNUSS Bridge', {
     body: d.body || '',
     icon: ICON,
-    badge: ICON,
+    badge: BADGE,
     tag: d.tag || 'letter',
     data: { url: d.url || APP_ROOT }
   });
