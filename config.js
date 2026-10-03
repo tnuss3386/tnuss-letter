@@ -1,5 +1,5 @@
 // ★ GASで発行した「ウェブアプリのURL」（https://script.google.com/macros/s/.../exec）に置き換えてください
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbx99QzFj8IDGbZfKf-XLATPyDuJWmM0uw67tfarrFSjFj2XVaQ3LZuxww9gVdMWdxtlRA/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbz4RUhDAs-m29h4RKyc4Orq3nUIYLSdF9vmXrITNEzLt80pwLRIt9xvoC_iqVl92YVcGQ/exec';
 var FORM_LINKS = [
   {
     label: '欠席・遅刻・早退の連絡',
