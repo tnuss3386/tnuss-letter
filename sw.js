@@ -1,9 +1,9 @@
 // 画面ファイル（殻）を端末に保存し、起動時はまず保存済みのものを即表示して、裏で最新に更新する。
 // 投稿内容そのもの（GASからのデータ）は別ドメインなのでここでは扱わない。
-var CACHE = 'letter-shell-v3';
+var CACHE = 'letter-shell-v5';
 var SHELL = [
-  './', './index.html', './style.css', './app.js', './config.js', './manifest.webmanifest',
-  './icons/icon-192.png', './icons/icon-512.png'
+  './', './index.html', './style.css', './ui.js', './app.js', './board.js', './calendar.js', './teacher.js', './push.js',
+  './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/crest.png'
 ];
 
 self.addEventListener('install', function (e) {

@@ -4,37 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>配布物・連絡事項</title>
-  <meta name="theme-color" content="#1c3d6e">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="連絡事項">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="header-inner">
-      <div>
-        <div class="sub">NOTICE BOARD</div>
-        <h1>配布物・連絡事項</h1>
-      </div>
-      <div class="userbox" id="userbox"></div>
-    </div>
-  </header>
-  <main>
-    <div class="offline-note hidden" id="notice"></div>
-    <div id="app"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  <header id="navbar" class="navbar"></header>
+  <main id="view" class="view no-tabbar">
+    <div class="skeleton" style="margin-top:56px"></div><div class="skeleton"></div><div class="skeleton"></div>
   </main>
-
-  <nav class="bottom-nav hidden" id="bottomNav" aria-label="メニュー"></nav>
+  <nav id="tabbar" class="tabbar hidden" aria-label="メニュー"></nav>
 
   <script src="config.js"></script>
+  <script src="ui.js"></script>
   <script src="push.js"></script>
   <script src="app.js"></script>
+  <script src="board.js"></script>
+  <script src="calendar.js"></script>
+  <script src="teacher.js"></script>
   <script>
+    L.boot();
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').catch(function () {});
