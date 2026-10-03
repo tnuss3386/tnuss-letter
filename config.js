@@ -1,5 +1,5 @@
 // ★ GASで発行した「ウェブアプリのURL」（https://script.google.com/macros/s/.../exec）に置き換えてください
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbzbGDozkECxceFcGFVxSwr13iOxyuZgUdVxEEzdc_2F_3SnlXNEzfsVqmq0LIEhc2VmVg/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbywU9viVfcpysyjpzvGLCkl-WycL2Td00pnai-VT7SNjEFW_sAza1OYoia9jnr8lzB6FA/exec';
 
 // ★ 欠席届など、既存のGoogleフォームへのボタン（保護者の画面の下に、「連絡・配布物」の隣へ並びます）。使わないなら [] のままで構いません。
 //   label  : ボタンの名前（短く。3文字〜5文字くらい）
@@ -16,7 +16,7 @@ var FORM_LINKS = [
 ];
 
 // ★ プッシュ通知を使う場合のみ設定（READMEの「プッシュ通知」参照）。使わないなら null と '' のままで構いません
-var FIREBASE_CONFIG = { apiKey: '…', authDomain: '…', projectId: '…', storageBucket: '…', messagingSenderId: '…', appId: '…' };
+var FIREBASE_CONFIG = { apiKey: 'AIzaSyD2P6DvOGLPyQmDxM1ySfj6oyv0hq1ycK4', authDomain: 'tnuss-bridge.firebaseapp.com', projectId: 'tnuss-bridge', storageBucket: 'tnuss-bridge.firebasestorage.app', messagingSenderId: '375245821863', appId: '1:375245821863:web:65dcd63564a3844df80882' };
 var VAPID_KEY = 'BBEhJxQd9inZd2s58VkuJnUNK-xOjm-QQaZKr-dSXBAKu_2ErRPc4nv0qzycK6UJkLpUOmx-wzguLjBELraS-IM';
 
 // アプリの名前と学校名（ログイン画面とPCのサイドバーに表示）
