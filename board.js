@@ -262,10 +262,9 @@
       title: '添付ファイル ' + el.getAttribute('data-n'),
       left: { label: '保存・共有', onTap: function () { window.open('https://drive.google.com/uc?export=download&id=' + id, '_blank', 'noopener'); } },
       right: { label: '完了', onTap: function (s) { s.close(); } },
-      body: '<div class="doc-loading">読み込み中…</div><iframe class="doc-frame" src="https://drive.google.com/file/d/' + id + '/preview" title="添付ファイル"></iframe>'
+      body: L.loadingHtml('添付ファイルを開いています…') + '<iframe class="doc-frame" src="https://drive.google.com/file/d/' + id + '/preview" title="添付ファイル"></iframe>'
     });
-    var frame = sheet.el.querySelector('iframe');
-    frame.addEventListener('load', function () { var l = sheet.el.querySelector('.doc-loading'); if (l) l.remove(); });
+    L.watchLoading(sheet.el, sheet.el.querySelector('iframe'));
   };
 
   // ---------- 届け出（既存のGoogleフォームを、アプリの中に表示する） ----------
@@ -279,10 +278,10 @@
         title: f.label, hideCompose: true,
         right: '<button class="nb-btn" data-act="openExternal" data-url="' + esc(L.formUrl(f, false)) + '" aria-label="ブラウザで開く">' + L.icon('link') + '</button>'
       },
-      html: '<div class="form-wrap"><div class="doc-loading" id="formLoading">読み込み中…</div>' +
+      html: '<div class="form-wrap">' + L.loadingHtml('フォームを開いています…') +
         '<iframe class="form-frame" src="' + esc(L.formUrl(f, true)) + '" title="' + esc(f.label) + '"></iframe></div>',
       bind: function (root) {
-        root.querySelector('iframe').addEventListener('load', function () { var l = root.querySelector('#formLoading'); if (l) l.remove(); });
+        L.watchLoading(root, root.querySelector('iframe'));
       }
     };
   };

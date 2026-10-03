@@ -228,6 +228,23 @@
     toastTimer = setTimeout(function () { t.remove(); }, isError ? 4200 : 2400);
   };
 
+  /** 埋め込み表示（添付ファイル・フォーム）が開くまでの、回転するアイコンと文言 */
+  L.loadingHtml = function (text) {
+    return '<div class="doc-loading" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><span>' + L.esc(text || '読み込み中…') + '</span></div>';
+  };
+  /** frame の読み込みが終わったら overlay を消す。時間がかかるときは、文言を変えて待ってもらう */
+  L.watchLoading = function (host, frame) {
+    var timer = setTimeout(function () {
+      var s = host.querySelector('.doc-loading span');
+      if (s) s.textContent = '読み込みに時間がかかっています。電波の良い場所で、そのままお待ちください…';
+    }, 10000);
+    frame.addEventListener('load', function () {
+      clearTimeout(timer);
+      var l = host.querySelector('.doc-loading');
+      if (l) l.remove();
+    });
+  };
+
   L.debounce = function (fn, ms) {
     var t;
     return function () {

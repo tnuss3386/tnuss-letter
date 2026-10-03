@@ -201,7 +201,7 @@
     $view.innerHTML =
       '<div class="page login">' +
       '<img class="crest" src="icons/crest.png" alt="" width="96">' +
-      '<h1 class="wordmark">' + wordmark() + '</h1>' +
+      '<h1>' + esc((typeof APP_TITLE !== 'undefined' && APP_TITLE) || '配布物・連絡事項') + '</h1>' +
       ((typeof APP_TAGLINE !== 'undefined' && APP_TAGLINE) ? '<p class="tagline">' + esc(APP_TAGLINE) + '</p>' : '') +
       ((typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) ? '<p class="sub">' + esc(SCHOOL_NAME) + '</p>' : '') +
       '<p class="lead">発行されたIDとパスワードで<br>ログインしてください</p>' +
