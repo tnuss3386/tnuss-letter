@@ -31,12 +31,34 @@
     <button onclick="location.reload()">再読み込み</button>
   </div>
   <div class="msg" id="notset">
-    <p>設定が未完了です。<br><code>index.html</code> の <code>GAS_URL</code> に、<br>ウェブアプリのURLを入力してください。</p>
+    <p>設定が未完了です。<br><code>config.js</code> の <code>GAS_URL</code> に、<br>ウェブアプリのURLを入力してください。</p>
   </div>
 
+  <script src="config.js"></script>
   <script>
-    // ★ GASで発行した「ウェブアプリのURL」（https://script.google.com/macros/s/.../exec）に置き換えてください
-    var GAS_URL = 'https://script.google.com/macros/s/AKfycbwQH4yxnL5dDLjjbI8LsjYnkOIvRaOXjjVmziMW91b1NR0GSVzaEzy_Lx0eux6M6LJRTQ/exec';
+    var TOKEN_KEY = 'letterSessionToken';
+    var GAS_ORIGIN = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/;
+
+    function store(op, value) {
+      try {
+        if (op === 'get') return localStorage.getItem(TOKEN_KEY);
+        if (op === 'set') localStorage.setItem(TOKEN_KEY, value);
+        if (op === 'clear') localStorage.removeItem(TOKEN_KEY);
+      } catch (e) {}
+      return null;
+    }
+
+    // 画面（GAS側）からの「ログイン情報の保存・取得」依頼に応える
+    window.addEventListener('message', function (e) {
+      if (!GAS_ORIGIN.test(e.origin) || !e.data || typeof e.data.type !== 'string') return;
+      if (e.data.type === 'letter:getToken') {
+        e.source.postMessage({ type: 'letter:token', token: store('get') }, e.origin);
+      } else if (e.data.type === 'letter:setToken' && typeof e.data.token === 'string') {
+        store('set', e.data.token);
+      } else if (e.data.type === 'letter:clearToken') {
+        store('clear');
+      }
+    });
 
     var frame = document.getElementById('frame');
     if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(GAS_URL)) {
@@ -44,7 +66,7 @@
     } else if (!navigator.onLine) {
       document.getElementById('offline').classList.add('show');
     } else {
-      frame.src = GAS_URL;
+      frame.src = GAS_URL + '?pwa=1';
     }
     window.addEventListener('online', function () { location.reload(); });
 

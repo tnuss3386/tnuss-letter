@@ -1,6 +1,6 @@
 // 入れ物ページ（殻）だけをキャッシュする。投稿内容はキャッシュしない（常に最新を表示するため）。
-var CACHE = 'letter-shell-v1';
-var SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+var CACHE = 'letter-shell-v2';
+var SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }));
