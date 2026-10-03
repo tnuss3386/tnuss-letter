@@ -61,6 +61,20 @@
     weekdayOfYmd: weekdayOfYmd,
     pad: pad
   };
+  // 学年・クラス・番号の表示を「1年A組3番」にそろえる（マスタには「第1学年」「A組」のまま入れておく。欠席届フォームへの入力と、配信対象の判定に使うため）
+  L.fmt.grade = function (g) {
+    var m = /^第?\s*(\d+)\s*学年$/.exec(String(g || '').trim());
+    return m ? m[1] + '年' : String(g || '');
+  };
+  L.fmt.klass = function (k) {
+    k = String(k || '').trim();
+    return k && !/組$/.test(k) ? k + '組' : k;
+  };
+  /** 1年A組（番号があれば 1年A組3番） */
+  L.fmt.cls = function (c, withNum) {
+    var n = withNum !== false && c.num !== undefined && String(c.num).trim() !== '' ? String(c.num).trim() + '番' : '';
+    return L.fmt.grade(c.grade) + L.fmt.klass(c.klass) + n;
+  };
   L.today = function () { return L.fmt.ymd(new Date()); };
 
   // 日本時間の「日付＋時刻」と ISO の相互変換（端末の時刻設定に左右されないようにする）

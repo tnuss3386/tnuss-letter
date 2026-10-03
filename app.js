@@ -17,6 +17,7 @@
     role: null, name: '', categories: [],
     children: [], child: null, posts: [],
     grades: [], classes: [], students: [], tposts: null,
+    years: [], curFy: null, viewFy: null, archive: null,   // 年度: viewFy が null なら今年度。過去の年度は archive に読み込む
     tab: 'home', detail: null, offline: false,
     filter: { cat: 'ALL', unread: false, scheduled: false, q: '' },
     lastFetch: 0, scrollByTab: {}
@@ -139,11 +140,15 @@
       S.children = state.children && state.children.length ? state.children : [state.current];
       S.child = state.current;
       S.posts = state.posts || [];
+      S.curFy = state.fy || S.curFy;
+      S.years = state.years || S.years;
       S.serverOffset = state.serverTime ? new Date(state.serverTime).getTime() - Date.now() : 0;
     } else {
       S.grades = state.grades || [];
       S.classes = state.classes || [];
       S.students = state.students || [];
+      S.senders = state.senders || [];
+      S.defaultSender = state.defaultSender || '';
     }
   }
 
@@ -156,6 +161,8 @@
       setOffline(false);
       var prev = S.tposts;
       S.tposts = res.posts;
+      S.curFy = res.fy || S.curFy;
+      S.years = res.years || S.years;
       L.store.cacheSet('tposts', res.posts);
       if (forceRender || !prev || !same(prev, res.posts)) render(null, true);
     }).catch(function () {
@@ -165,9 +172,47 @@
   }
 
   L.refresh = function () {
-    if (S.role === 'teacher') return loadTeacherPosts(false);
-    return loadState(true);
+    var p = S.role === 'teacher' ? loadTeacherPosts(false) : loadState(true);
+    if (S.viewFy) return Promise.resolve(p).then(function () { return loadArchive(S.viewFy, true); });
+    return p;
   };
+
+  // ---------- 年度の切り替え（過去の年度は、選んだときだけ読み込む） ----------
+  function loadArchive(fy, silent) {
+    var req = S.role === 'teacher'
+      ? L.api('getAllPosts', { token: L.token(), fy: fy })
+      : L.api('getState', { token: L.token(), studentId: S.child.id, fy: fy });
+    return req.then(function (res) {
+      if (S.viewFy !== fy) return;
+      if (!res.ok && res.role !== 'parent') { if (!silent) L.ui.toast(res.error || '読み込めませんでした', true); return false; }
+      S.archive = res.posts || [];
+      render(null, true);
+      return true;
+    }).catch(function () { if (!silent) L.ui.toast('通信できませんでした', true); return false; });
+  }
+
+  function setYear(fy) {
+    var cur = fy === S.curFy ? null : fy;
+    if (cur === S.viewFy) return;
+    S.detail = null;
+    S.filter = { cat: 'ALL', unread: false, scheduled: false, q: '' };
+    S.viewFy = cur;
+    S.archive = null;
+    if (!cur) { render(null, false); return; }
+    render(null, false);
+    loadArchive(cur, false).then(function (ok) { if (ok === false) { S.viewFy = null; S.archive = null; render(null, false); } });
+  }
+
+  L.acts.pickYear = function () {
+    var years = S.years && S.years.length ? S.years : [S.curFy];
+    L.ui.actions({
+      title: '年度を選ぶ',
+      items: years.map(function (y) {
+        return { label: y + '年度' + (y === S.curFy ? '（今年度）' : ''), selected: (S.viewFy || S.curFy) === y, onTap: function () { setYear(y); } };
+      })
+    });
+  };
+  L.acts.thisYear = function () { setYear(S.curFy); };
 
   function setOffline(v) {
     if (S.offline === v) return;
@@ -181,7 +226,7 @@
     L.store.remove(TOKEN_KEY);
     L.store.remove(CHILD_KEY);
     L.store.clearCache();
-    S.role = null; S.posts = []; S.tposts = null; S.detail = null; S.tab = 'home';
+    S.role = null; S.posts = []; S.tposts = null; S.viewFy = null; S.archive = null; S.detail = null; S.tab = 'home';
     S.nonce = Math.random().toString(36).slice(2);
     if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () {});
   }
@@ -206,7 +251,7 @@
       ((typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) ? '<p class="sub">' + esc(SCHOOL_NAME) + '</p>' : '') +
       '<p class="lead">発行されたIDとパスワードで<br>ログインしてください</p>' +
       '<div class="group"><div class="field"><label for="loginId">ID</label>' +
-      '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID"></div>' +
+      '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID（学籍番号）"></div>' +
       '<div class="field" style="position:relative"><label for="loginPw">パスワード</label>' +
       '<input id="loginPw" type="password" autocomplete="current-password" placeholder="パスワード"></div></div>' +
       '<div class="error-text hidden" id="loginError" style="text-align:left;margin:0 4px 12px"></div>' +
@@ -324,7 +369,7 @@
     if (S.role === 'teacher') h += '<button class="sb-primary" data-act="compose" title="新規投稿">' + L.icon('compose') + '<span>新規投稿</span></button>';
     if (S.role === 'parent' && S.children.length > 1) {
       h += '<button class="sb-item sb-who" data-act="switchChild" title="子どもを切り替える">' + L.icon('person') +
-        '<span class="sb-label">' + esc(S.child.name) + '<small>' + esc(S.child.grade + ' ' + S.child.klass) + '</small></span>' + L.icon('chevD') + '</button><div class="sb-sep"></div>';
+        '<span class="sb-label">' + esc(S.child.name) + '<small>' + esc(L.fmt.cls(S.child)) + '</small></span>' + L.icon('chevD') + '</button><div class="sb-sep"></div>';
     }
     h += '<div class="sb-head">メニュー</div>';
     navItems().forEach(function (it) {
@@ -335,7 +380,7 @@
     });
     h += '<div class="sb-sep"></div>' +
       '<button class="sb-item sb-who" data-act="account" title="アカウント">' + L.icon('person') +
-      '<span class="sb-label">' + esc(S.name) + '<small>' + (S.role === 'teacher' ? '教員' : (S.child ? esc(S.child.grade + ' ' + S.child.klass) : '')) + '</small></span></button>' +
+      '<span class="sb-label">' + esc(S.name) + '<small>' + (S.role === 'teacher' ? '教員' : (S.child ? esc(L.fmt.cls(S.child)) : '')) + '</small></span></button>' +
       '<button class="sb-item sb-who sb-toggle" data-act="toggleSidebar" title="サイドバーの表示を切り替える" aria-label="サイドバーの表示を切り替える">' +
       L.icon(collapsed ? 'panelOpen' : 'panelClose') + '<span class="sb-label">' + (collapsed ? '広げる' : '閉じる') + '</span></button></aside>';
     return h;
@@ -345,10 +390,11 @@
     var left = '';
     if (cfg.back) {
       left = '<button class="nb-btn nb-back" data-act="back" aria-label="戻る">' + L.icon('back') + '</button>';
-    } else if (S.role === 'parent' && S.children.length > 1) {
-      left = '<button class="nb-child" data-act="switchChild" aria-label="子どもを切り替える"><span>' + esc(S.child.name) + '</span>' + L.icon('chevD') + '</button>';
     }
     var right = (cfg.right || '');
+    if (!cfg.back && S.role === 'parent' && S.children.length > 1) {
+      right += '<button class="nb-child" data-act="switchChild" aria-label="子どもを切り替える（いま：' + esc(S.child.name) + '）"><span>' + esc(S.child.name) + '</span>' + L.icon('chevD') + '</button>';
+    }
     if (S.role === 'teacher' && !cfg.hideCompose) {
       right += '<button class="nb-btn" data-act="compose" aria-label="新規投稿">' + L.icon('compose') + '</button>';
     }
@@ -558,7 +604,7 @@
   }
 
   function markRead(id) {
-    var p = S.posts.filter(function (x) { return x.id === id; })[0];
+    var p = (S.posts.filter(function (x) { return x.id === id; })[0]) || (S.archive || []).filter(function (x) { return x.id === id; })[0];
     if (!p || p.read) return;
     p.read = true;
     var cached = L.store.cacheGet('state:parent');
@@ -598,7 +644,7 @@
       title: '表示する子どもを選ぶ',
       items: S.children.map(function (c) {
         return {
-          label: c.name + '（' + c.grade + ' ' + c.klass + '）',
+          label: c.name + '（' + L.fmt.cls(c) + '）',
           selected: c.id === S.child.id,
           onTap: function () { switchChild(c.id); }
         };
@@ -611,6 +657,9 @@
     L.store.set(CHILD_KEY, id);
     S.detail = null;
     S.posts = [];
+    S.viewFy = null; S.archive = null;
+    S.forms = {};
+    S.ivSel = {};
     S.filter = { cat: 'ALL', unread: false, scheduled: false, q: '' };
     showSkeleton();
     loadState(false);
@@ -621,7 +670,7 @@
     var st = S.role === 'parent' && push ? push.status() : 'unconfigured';
     var body = '<div class="section"><div class="group">' +
       '<div class="row"><span class="row-icon">' + L.icon('person') + '</span><span class="row-main"><span class="row-label">' + esc(S.name) + '</span>' +
-      '<span class="row-value">' + (S.role === 'teacher' ? '教員' : (S.child ? esc(S.child.grade + ' ' + S.child.klass) : '')) + '</span></span></div></div></div>';
+      '<span class="row-value">' + (S.role === 'teacher' ? '教員' : (S.child ? esc(L.fmt.cls(S.child)) : '')) + '</span></span></div></div></div>';
     if (st === 'off' || st === 'on') {
       body += '<div class="section"><div class="group"><label class="row"><span class="row-icon" style="background:var(--red)">' + L.icon('bell') + '</span>' +
         '<span class="row-label">新着をスマホに通知</span><span class="switch"><input type="checkbox" id="pushToggle"' + (st === 'on' ? ' checked' : '') + '><i></i></span></label></div>' +

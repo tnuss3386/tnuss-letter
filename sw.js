@@ -3,7 +3,7 @@
 //  - index.html と config.js は、まず最新を取りに行く（通信できないとき・遅いときだけ保存済みを使う）
 //  - ほかのファイルは、版の番号（?v=…）ごとに保存する（index.html が指す版のものだけが使われる）
 // 画面を更新したときは、BUILD の値を index.html の ?v=… と同じ値に変える。
-var BUILD = '20261004e';
+var BUILD = '20261004j';
 var CACHE = 'letter-shell-' + BUILD;
 var V = '?v=' + BUILD;
 var SHELL = [

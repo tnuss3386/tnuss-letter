@@ -4,19 +4,26 @@
   var L = window.L;
   var S = L.S;
   var esc = L.esc;
-  var PAGE_SIZE = 30;
+  var PAGE_SIZE = 20;      // 1か月ぶんで最初に出す件数
   var NEW_MS = 3 * 86400000;
   var PUSH_DISMISS_KEY = 'letterPushDismiss';
 
   S.seg = { survey: 'todo', iv: 'todo' };
   S.ivSel = {};
   S.forms = {};
-  var limit = PAGE_SIZE;
+  var monthOpen = {};      // 月ごとの開閉（手で開閉したもの）
+  var monthLimit = {};     // 月ごとに出している件数
+  var allToggle = null;    // 'open' | 'closed': 「すべて開く／閉じる」を押したとき
+  var AUTO_OPEN = 2;       // 何も絞り込んでいないとき、新しい方から何か月を開いておくか
 
-  function sourcePosts() { return S.role === 'teacher' ? S.tposts : S.posts; }
+  function sourcePosts() {
+    if (S.viewFy) return S.archive;
+    return S.role === 'teacher' ? S.tposts : S.posts;
+  }
   L.findPost = function (id) {
     var list = sourcePosts() || [];
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    if (S.viewFy) return null;
     return null;
   };
 
@@ -27,11 +34,14 @@
   L.catColor = catColor;
   function badge(name) { return '<span class="badge" style="--c:' + esc(catColor(name)) + '">' + esc(name) + '</span>'; }
   L.badge = badge;
+  // 発信元（学年・分掌など）。カテゴリの色付きラベルとは別に、枠だけの控えめなラベルで添える
+  function fromTag(p) { return p.sender ? '<span class="from-tag">' + esc(p.sender) + '</span>' : ''; }
+  L.fromTag = fromTag;
 
   var hayCache = {};
   function haystack(p) {
     var key = p.id + '|' + (p.edited || '');
-    if (!hayCache[key]) hayCache[key] = (p.title + ' ' + p.category + ' ' + L.htmlToText(p.body)).toLowerCase();
+    if (!hayCache[key]) hayCache[key] = (p.title + ' ' + p.category + ' ' + (p.sender || '') + ' ' + L.htmlToText(p.body)).toLowerCase();
     return hayCache[key];
   }
 
@@ -63,7 +73,7 @@
     return '<button class="row post-row' + (unread ? ' unread' : '') + '" data-act="open" data-id="' + esc(p.id) + '">' +
       '<span class="unread-dot"></span>' +
       '<span class="row-main">' +
-      '<span class="row-meta">' + badge(p.category) + (p.scheduled ? '<span class="tag warn">予約中</span>' : '') + (isNew ? '<span class="tag new">NEW</span>' : '') + optionTag(p) + '<span>' + esc(when) + '</span></span>' +
+      '<span class="row-meta">' + badge(p.category) + fromTag(p) + (p.scheduled ? '<span class="tag warn">予約中</span>' : '') + (isNew ? '<span class="tag new">NEW</span>' : '') + optionTag(p) + '<span>' + esc(when) + '</span></span>' +
       '<span class="row-title">' + esc(p.title) + '</span>' +
       (sub.length ? '<span class="row-sub">' + esc(sub.join('　')) + '</span>' : '') +
       '</span>' + L.icon('chevR', 'chev') + '</button>';
@@ -71,19 +81,80 @@
   L.rowHtml = rowHtml;
 
   function groupedRows(items, withMonths) {
-    if (!withMonths) return '<div class="section tight"><div class="group">' + items.map(rowHtml).join('') + '</div></div>';
-    var html = '', last = '', open = false;
+    return '<div class="section tight"><div class="group">' + items.map(rowHtml).join('') + '</div></div>';
+  }
+
+  function isFiltering() {
+    var f = S.filter;
+    return !!(f.q.trim() || f.cat !== 'ALL' || f.from || f.unread || f.scheduled);
+  }
+
+  // 月ごとにまとめ、古い月は閉じておく（開閉は押して切り替え。未読がある月は、閉じていても件数でわかる）
+  function monthsHtml(items) {
+    var groups = [], idx = {};
     items.forEach(function (p) {
       var m = L.fmt.month(p.date);
-      if (m !== last) {
-        if (open) html += '</div></div>';
-        html += '<div class="month-head">' + m + '</div><div class="section tight"><div class="group">';
-        last = m; open = true;
-      }
-      html += rowHtml(p);
+      if (!(m in idx)) { idx[m] = groups.length; groups.push({ name: m, posts: [] }); }
+      groups[idx[m]].posts.push(p);
     });
-    if (open) html += '</div></div>';
+    var filtering = isFiltering(), teacher = S.role === 'teacher';
+    var html = '';
+    groups.forEach(function (g, gi) {
+      var open;
+      if (g.name in monthOpen) open = monthOpen[g.name];
+      else if (allToggle) open = allToggle === 'open';
+      else open = filtering || gi < AUTO_OPEN;
+      var unread = teacher ? 0 : g.posts.filter(function (p) { return !p.read; }).length;
+      html += '<div class="month' + (open ? ' open' : '') + '">' +
+        '<button class="month-head" data-act="toggleMonth" data-m="' + esc(g.name) + '" aria-expanded="' + open + '">' +
+        L.icon('chevR', 'chev') + '<span class="mh-name">' + esc(g.name) + '</span>' +
+        '<span class="mh-n">' + g.posts.length + '件</span>' +
+        (unread ? '<span class="mh-unread">未読' + unread + '</span>' : '') + '</button>';
+      if (open) {
+        var lim = monthLimit[g.name] || PAGE_SIZE;
+        var shown = g.posts.slice(0, lim);
+        html += '<div class="section tight"><div class="group">' + shown.map(rowHtml).join('');
+        if (g.posts.length > shown.length) {
+          html += '<button class="row center tint" data-act="moreMonth" data-m="' + esc(g.name) + '">さらに表示（残り' + (g.posts.length - shown.length) + '件）</button>';
+        }
+        html += '</div></div>';
+      }
+      html += '</div>';
+    });
     return html;
+  }
+
+  L.acts.toggleMonth = function (el) {
+    var m = el.getAttribute('data-m');
+    monthOpen[m] = el.getAttribute('aria-expanded') !== 'true';
+    drawList(true);
+  };
+  L.acts.moreMonth = function (el) {
+    var m = el.getAttribute('data-m');
+    monthLimit[m] = (monthLimit[m] || PAGE_SIZE) + PAGE_SIZE;
+    drawList(true);
+  };
+  L.acts.toggleAllMonths = function () {
+    var anyOpen = !!document.querySelector('#list .month.open');
+    monthOpen = {};
+    allToggle = anyOpen ? 'closed' : 'open';
+    drawList(true);
+  };
+
+  // 「対応が必要なもの」: 未回答のアンケート・要予約の面談（期限が近い順）を、一覧の上にまとめて出す
+  function todoHtml() {
+    if (S.role !== 'parent' || S.viewFy || isFiltering()) return '';
+    var todo = (S.posts || []).filter(function (p) {
+      var o = p.option;
+      if (!o || o.closed) return false;
+      return o.type === 'survey' ? !o.answered : !o.mySlot;
+    }).sort(function (a, b) { return (a.option.deadline || '9') < (b.option.deadline || '9') ? -1 : 1; });
+    if (!todo.length) return '';
+    var shown = todo.slice(0, 3);
+    return '<div class="section todo-box"><div class="group-header">対応が必要です（' + todo.length + '件）</div><div class="group">' +
+      shown.map(rowHtml).join('') +
+      (todo.length > shown.length ? '<button class="row center tint" data-act="tab" data-tab="' + (shown[0].option.type === 'survey' ? 'survey' : 'iv') + '">すべて見る</button>' : '') +
+      '</div></div>';
   }
 
   function emptyState(icon, title, text) {
@@ -113,6 +184,7 @@
     var f = S.filter, q = f.q.trim().toLowerCase();
     return (sourcePosts() || []).filter(function (p) {
       if (f.cat !== 'ALL' && p.category !== f.cat) return false;
+      if (f.from && p.sender !== f.from) return false;
       if (f.unread && p.read) return false;
       if (f.scheduled && !p.scheduled) return false;
       return !q || haystack(p).indexOf(q) !== -1;
@@ -139,45 +211,92 @@
     return h;
   }
 
-  function drawList() {
+  // 開閉のたびに、見ている位置が飛ばないよう、スクロールしている要素（PCでは真ん中の枠、スマホでは画面全体）を探す
+  function scroller(el) {
+    for (var n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+      var oy = getComputedStyle(n).overflowY;
+      if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight) return n;
+    }
+    return document.scrollingElement || document.documentElement;
+  }
+
+  // 発信元の絞り込み（2種類以上の発信元があるときだけ表示）
+  function fromChipsHtml() {
+    var src = sourcePosts() || [], counts = {}, order = [];
+    src.forEach(function (p) {
+      if (!p.sender) return;
+      if (!counts[p.sender]) order.push(p.sender);
+      counts[p.sender] = (counts[p.sender] || 0) + 1;
+    });
+    if (order.length < 2) return '';
+    var names = [];
+    ((S.role === 'teacher' ? S.senders : null) || []).forEach(function (g) { g.items.forEach(function (n) { names.push(n); }); });
+    order.sort(function (a, b) {
+      var ia = names.indexOf(a), ib = names.indexOf(b);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || (a < b ? -1 : 1);
+    });
+    return '<span class="chips-label">発信元</span>' + order.map(function (n) {
+      return '<button class="chip from' + (S.filter.from === n ? ' on' : '') + '" data-act="chipFrom" data-from="' + esc(n) + '">' + esc(n) + '<span class="n">' + counts[n] + '</span></button>';
+    }).join('');
+  }
+
+  function drawList(keepScroll) {
     var list = document.getElementById('list');
     if (!list) return;
     var items = filteredItems();
     var chips = document.getElementById('chips');
     if (chips) chips.innerHTML = chipsHtml();
+    var chips2 = document.getElementById('chips2');
+    if (chips2) { var fh = fromChipsHtml(); chips2.innerHTML = fh; chips2.style.display = fh ? '' : 'none'; }
     var cnt = document.getElementById('resultLine');
-    if (cnt) cnt.textContent = (S.filter.q || S.filter.cat !== 'ALL' || S.filter.unread || S.filter.scheduled) ? items.length + '件' : '';
+    if (cnt) {
+      var parts = [];
+      if (isFiltering()) parts.push(items.length + '件');
+      cnt.innerHTML = '<span>' + esc(parts.join('')) + '</span>' +
+        (items.length > 8 ? '<button class="link-btn" data-act="toggleAllMonths">月をすべて開く／閉じる</button>' : '');
+    }
+    var y = document.getElementById('yearBar');
+    if (y) y.innerHTML = yearBarHtml();
     if (!items.length) {
-      list.innerHTML = (sourcePosts() || []).length
+      list.innerHTML = todoHtml() + ((sourcePosts() || []).length
         ? emptyState('search', '該当する連絡はありません', '条件を変えてお試しください。')
-        : emptyState('notice', '連絡はまだありません', '新しい連絡が届くと、ここに表示されます。');
+        : emptyState('notice', '連絡はまだありません', S.viewFy ? 'この年度の連絡はありません。' : '新しい連絡が届くと、ここに表示されます。'));
       return;
     }
-    var shown = items.slice(0, limit);
-    var html = groupedRows(shown, true);
-    if (items.length > shown.length) {
-      html += '<div class="section"><div class="group"><button class="row center tint" data-act="more">さらに表示（残り' + (items.length - shown.length) + '件）</button></div></div>';
-    }
-    list.innerHTML = html;
+    var sc = keepScroll ? scroller(list) : null, y0 = sc ? sc.scrollTop : 0;
+    list.innerHTML = todoHtml() + monthsHtml(items);
+    if (sc) sc.scrollTop = y0;
   }
 
-  L.acts.more = function () { limit += PAGE_SIZE; drawList(); };
-  L.acts.chipAll = function () { S.filter.cat = 'ALL'; S.filter.unread = false; S.filter.scheduled = false; limit = PAGE_SIZE; drawList(); };
-  L.acts.chipUnread = function () { S.filter.unread = !S.filter.unread; S.filter.cat = 'ALL'; limit = PAGE_SIZE; drawList(); };
-  L.acts.chipScheduled = function () { S.filter.scheduled = !S.filter.scheduled; S.filter.cat = 'ALL'; limit = PAGE_SIZE; drawList(); };
-  L.acts.chipCat = function (el) { S.filter.cat = el.getAttribute('data-cat'); S.filter.unread = false; S.filter.scheduled = false; limit = PAGE_SIZE; drawList(); };
+  function resetView() { monthOpen = {}; monthLimit = {}; allToggle = null; }
+  L.acts.chipFrom = function (el) { var n = el.getAttribute('data-from'); S.filter.from = S.filter.from === n ? '' : n; resetView(); drawList(); };
+  L.acts.chipAll = function () { S.filter.from = ''; S.filter.cat = 'ALL'; S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
+  L.acts.chipUnread = function () { S.filter.unread = !S.filter.unread; S.filter.cat = 'ALL'; resetView(); drawList(); };
+  L.acts.chipScheduled = function () { S.filter.scheduled = !S.filter.scheduled; S.filter.cat = 'ALL'; resetView(); drawList(); };
+  L.acts.chipCat = function (el) { S.filter.cat = el.getAttribute('data-cat'); S.filter.unread = false; S.filter.scheduled = false; resetView(); drawList(); };
+
+  // 年度の表示。過去の年度を見ているときは、帯で知らせて、今年度に戻れるようにする
+  function yearBarHtml() {
+    var multi = (S.years || []).length > 1;
+    if (S.viewFy) {
+      return '<div class="year-banner">' + L.icon('clock') + '<span><b>' + S.viewFy + '年度</b>の連絡を表示中</span>' +
+        '<button class="link-btn" data-act="pickYear">年度を変える</button><button class="link-btn" data-act="thisYear">今年度へ</button></div>';
+    }
+    return multi ? '<div class="year-bar"><button class="link-btn" data-act="pickYear">' + L.icon('calendar') + (S.curFy || '') + '年度 ▾　過去の年度を見る</button></div>' : '';
+  }
 
   L.views.home = function () {
     var src = sourcePosts();
     if (src === null || src === undefined) {
       return { nav: { title: '連絡' }, html: '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>' };
     }
-    limit = PAGE_SIZE;
-    var html = pushBannerHtml() +
+    resetView();
+    var html = pushBannerHtml() + '<div id="yearBar">' + yearBarHtml() + '</div>' +
       '<div class="search' + (S.filter.q ? ' has-text' : '') + '">' + L.icon('search', 'mag') +
       '<input id="q" type="search" placeholder="検索" value="' + esc(S.filter.q) + '" enterkeyhint="search" autocomplete="off">' +
       '<button class="clear" data-act="clearSearch" aria-label="消す">' + L.icon('xmark') + '</button></div>' +
       '<div class="chips" id="chips">' + chipsHtml() + '</div>' +
+      '<div class="chips from-chips" id="chips2"></div>' +
       '<div class="result-line" id="resultLine"></div><div id="list"></div>';
     return {
       nav: { title: '連絡' },
@@ -185,7 +304,7 @@
       bind: function (root) {
         var q = root.querySelector('#q');
         q.addEventListener('input', L.debounce(function () {
-          S.filter.q = q.value; limit = PAGE_SIZE;
+          S.filter.q = q.value; resetView();
           q.parentNode.classList.toggle('has-text', !!q.value);
           drawList();
         }, 120));
@@ -194,7 +313,7 @@
     };
   };
   L.acts.clearSearch = function () {
-    S.filter.q = '';
+    S.filter.q = ''; resetView();
     var q = document.getElementById('q');
     if (q) { q.value = ''; q.parentNode.classList.remove('has-text'); q.focus(); }
     drawList();
@@ -304,7 +423,7 @@
       return { nav: nav, html: emptyState('info', '見つかりません', 'この連絡は削除されたか、表示できません。') };
     }
     var teacher = S.role === 'teacher';
-    var html = '<div class="detail-meta">' + badge(p.category) +
+    var html = '<div class="detail-meta">' + badge(p.category) + fromTag(p) +
       (p.scheduled ? '<span class="tag warn">公開予定</span>' : '') +
       '<span>' + esc(L.fmt.mdhm(p.date)) + '</span>' +
       (p.edited ? '<span>・編集済み</span>' : '') + '</div>' +
@@ -322,9 +441,12 @@
   };
 
   // ---------- アンケートの回答 ----------
+  // 入力中の回答は、子どもごとに分けて覚える（きょうだいで、選んだ内容が混ざらないように）
+  function formKey(p) { return (S.child ? S.child.id : '') + ':' + p.id; }
   function formFor(p) {
-    if (!S.forms[p.id]) S.forms[p.id] = { answers: JSON.parse(JSON.stringify(p.option.answers || {})) };
-    return S.forms[p.id];
+    var k = formKey(p);
+    if (!S.forms[k]) S.forms[k] = { answers: JSON.parse(JSON.stringify(p.option.answers || {})) };
+    return S.forms[k];
   }
 
   function surveyHtml(p) {
@@ -397,7 +519,7 @@
       p.option.answered = true;
       p.option.answers = res.answers || f.answers;
       p.option.answeredAt = new Date().toISOString();
-      delete S.forms[p.id];
+      delete S.forms[formKey(p)];
       L.store.cacheSet('state:parent', Object.assign({}, L.store.cacheGet('state:parent'), { posts: S.posts }));
       L.updateBadge();
       L.ui.toast('回答を送信しました');
@@ -427,10 +549,11 @@
     var days = {}, order = [];
     o.slots.forEach(function (s) { var d = L.fmt.ymd(s.start); if (!days[d]) { days[d] = []; order.push(d); } days[d].push(s); });
     if (!order.length) return h + '<div class="empty">' + L.icon('calendar') + '<b>予約できる時間がありません</b></div>';
-    var sel = S.ivSel[p.id];
+    var selKey = (S.child ? S.child.id : '') + ':' + p.id;
+    var sel = S.ivSel[selKey];
     if (!days[sel]) {
       sel = o.mySlot ? L.fmt.ymd(o.mySlot.start) : (order.filter(function (d) { return days[d].some(function (s) { return s.state === 'free' && new Date(s.start) > new Date(); }); })[0] || order[0]);
-      S.ivSel[p.id] = sel;
+      S.ivSel[selKey] = sel;
     }
     h += '<div class="group-header" style="margin-top:4px">日にちを選ぶ</div><div class="date-scroll">' + order.map(function (d) {
       var mine = days[d].some(function (s) { return s.state === 'mine'; });
@@ -447,7 +570,7 @@
     return h;
   }
 
-  L.acts.ivDate = function (el) { S.ivSel[el.getAttribute('data-id')] = el.getAttribute('data-d'); L.render(null, true); };
+  L.acts.ivDate = function (el) { S.ivSel[(S.child ? S.child.id : '') + ':' + el.getAttribute('data-id')] = el.getAttribute('data-d'); L.render(null, true); };
 
   L.acts.book = function (el) {
     var p = L.findPost(el.getAttribute('data-id'));

@@ -112,7 +112,7 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--tint); outline-
 .nb-btn:hover { background: var(--fill); }
 .nb-btn:active { background: var(--fill-2); }
 .nb-back { color: var(--tint); font-weight: 600; padding-right: 14px; }
-.nb-child { max-width: 52vw; height: 36px; padding: 0 8px 0 14px; margin-left: 2px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); font-size: .9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+.nb-child { max-width: 40vw; height: 36px; padding: 0 8px 0 14px; margin-right: 2px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); font-size: .9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
 .nb-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nb-child svg.mi { width: 1.25rem; height: 1.25rem; color: var(--label-2); }
 .nb-avatar { display: inline-flex; color: var(--tint); }
@@ -172,7 +172,6 @@ a.row { text-decoration: none; color: var(--label); }
 .chip .n { color: var(--label-2); font-weight: 400; }
 .chip.on { background: var(--tint); color: var(--on-tint); border-color: var(--tint); font-weight: 600; }
 .chip.on .n { color: inherit; opacity: .85; }
-.result-line { margin: -4px 20px 10px; font-size: .8rem; color: var(--label-2); }
 
 /* ---------- 投稿の行 ---------- */
 .post-row { align-items: flex-start; padding: 14px 12px 14px 12px; }
@@ -190,8 +189,38 @@ a.row { text-decoration: none; color: var(--label); }
 .tag.warn { background: var(--warm); color: var(--orange); }
 .tag.ok { background: var(--sage-soft); color: var(--green); }
 .tag.info { background: var(--tint-soft); color: var(--tint); }
-.month-head { margin: 22px 20px 8px; font-size: .8rem; color: var(--label-2); font-weight: 700; letter-spacing: .04em; }
-.month-head:first-child { margin-top: 4px; }
+/* 月ごとの開閉。閉じた月も、件数と未読数が見える */
+.month-head { display: flex; align-items: center; gap: 8px; width: calc(100% - 24px); margin: 14px 12px 6px; padding: 8px; min-height: 40px; border-radius: 10px; text-align: left; color: var(--label-2); font-size: .85rem; font-weight: 700; letter-spacing: .03em; }
+.month-head:hover { background: var(--fill); }
+.month-head .chev { width: 1rem; height: 1rem; flex: none; transition: transform .15s; }
+.month.open > .month-head .chev { transform: rotate(90deg); }
+.month-head .mh-name { color: var(--label); }
+.month-head .mh-n { font-weight: 500; }
+.month-head .mh-unread { margin-left: auto; padding: 1px 9px; border-radius: 10px; background: var(--tint); color: var(--on-tint); font-size: .75rem; }
+.month:first-child > .month-head { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .month-head .chev { transition: none; } }
+
+.result-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px; min-height: 0; font-size: .82rem; color: var(--label-2); }
+.result-line:not(:empty) { min-height: 28px; }
+.result-line .link-btn { font-size: .82rem; }
+
+/* 発信元（学年・分掌など）: カテゴリの色ラベルとは別の、枠だけのラベル */
+.from-tag { display: inline-block; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line-strong, var(--label-3)); color: var(--label); font-size: .75rem; font-weight: 700; line-height: 1.5; }
+.from-chips:empty { display: none; }
+.chips-label { flex: none; align-self: center; font-size: .75rem; font-weight: 700; color: var(--label-2); padding-right: 2px; }
+.chip.from { height: 30px; font-size: .85rem; border-style: dashed; }
+.chip.from.on { border-style: solid; }
+
+/* 年度 */
+.year-bar { padding: 0 12px 6px; }
+.year-bar .link-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 8px; font-size: .88rem; }
+.year-bar .link-btn svg { width: 1rem; height: 1rem; }
+.year-banner { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin: 0 16px 12px; padding: 10px 14px; border-radius: 12px; background: var(--warm); color: var(--warm-ink); font-size: .9rem; }
+.year-banner svg { width: 1.2rem; height: 1.2rem; flex: none; }
+.year-banner span { flex: 1 1 auto; }
+.year-banner .link-btn { color: inherit; text-decoration: underline; min-height: 32px; }
+
+.todo-box { margin-bottom: 8px; }
 
 /* ---------- 詳細 ---------- */
 .detail-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 4px 20px 0; font-size: .88rem; color: var(--label-2); }

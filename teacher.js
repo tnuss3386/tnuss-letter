@@ -6,7 +6,7 @@
   var esc = L.esc;
   var T = L.teacher = {};
 
-  function who(c) { return '<span>' + esc(c.name) + ' <small>' + esc(c.grade + ' ' + c.klass) + '</small></span>'; }
+  function who(c) { return '<span>' + esc(c.name) + ' <small>' + esc(L.fmt.cls(c)) + '</small></span>'; }
 
   // ---------- 詳細の下に出す管理パネル ----------
   T.panelHtml = function (p) {
@@ -58,7 +58,7 @@
         h += '<div class="group-header" style="margin-top:20px">' + esc(q.text) + '</div><div class="group">';
         if (q.type === 'text') {
           h += q.texts.length ? q.texts.map(function (t) {
-            return '<div class="text-answer">' + esc(t.text) + '<small>' + esc(t.student.name + '（' + t.student.grade + ' ' + t.student.klass + '）') + '</small></div>';
+            return '<div class="text-answer">' + esc(t.text) + '<small>' + esc(t.student.name + '（' + L.fmt.cls(t.student) + '）') + '</small></div>';
           }).join('') : '<div class="row-wrap" style="color:var(--label-2)">まだ回答がありません</div>';
         } else {
           var total = 0;
@@ -78,7 +78,7 @@
       h += '<div class="group-header" style="margin-top:20px">面談の予約</div><div class="group">' + progress(iv.booked, st.target) + nameList(iv.unbooked, '未予約の家庭') + '</div>';
       h += '<div class="group-header" style="margin-top:20px">日程表</div><div class="group slot-table">' + (iv.slots.length ? iv.slots.map(function (s) {
         return '<div class="row"><span class="time">' + esc(L.fmt.md(s.start).replace(/（.）/, '') + ' ' + L.fmt.hm(s.start)) + '</span><span class="who' + (s.student ? '' : ' empty') + '">' +
-          (s.student ? esc(s.student.name) + ' <small style="color:var(--label-2)">' + esc(s.student.grade + ' ' + s.student.klass) + '</small>' : '空き') + '</span></div>';
+          (s.student ? esc(s.student.name) + ' <small style="color:var(--label-2)">' + esc(L.fmt.cls(s.student)) + '</small>' : '空き') + '</span></div>';
       }).join('') : '<div class="row-wrap">枠がありません</div>') + '</div>';
       pending = iv.unbooked.length; pendingLabel = '未予約';
     }
@@ -113,6 +113,7 @@
       L.api('deletePost', { token: L.token(), postId: id }).then(function (res) {
         if (!res.ok) { L.ui.toast(res.error, true); return; }
         S.tposts = (S.tposts || []).filter(function (x) { return x.id !== id; });
+        if (S.archive) S.archive = S.archive.filter(function (x) { return x.id !== id; });
         L.store.cacheSet('tposts', S.tposts);
         L.ui.toast('削除しました');
         L.back();
@@ -132,6 +133,7 @@
   function initState(p) {
     var C = {
       editing: p || null,
+      sender: p ? (p.sender || '') : (S.defaultSender || ''),
       category: p ? p.category : (S.categories[0] ? S.categories[0].name : 'お知らせ'),
       title: p ? p.title : '',
       body: p ? p.body : '',
@@ -217,7 +219,11 @@
     // ----- 各セクション -----
     function secBasics() {
       var cats = S.categories.map(function (c) { return '<option value="' + esc(c.name) + '"' + (c.name === C.category ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('');
-      return '<div class="section"><div class="group">' + field('カテゴリ', '<select data-f="category">' + cats + '</select>') +
+      var froms = '<option value=""' + (C.sender ? '' : ' selected') + ' disabled>選んでください</option>' + (S.senders || []).map(function (g) {
+        return '<optgroup label="' + esc(g.group) + '">' + g.items.map(function (n) { return '<option value="' + esc(n) + '"' + (n === C.sender ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</optgroup>';
+      }).join('');
+      return '<div class="section"><div class="group">' + field('発信元（どこから）', '<select data-f="sender">' + froms + '</select>') +
+        field('カテゴリ（種類）', '<select data-f="category">' + cats + '</select>') +
         '<div class="field-row"><input class="left" type="text" data-f="title" maxlength="120" placeholder="タイトル" value="' + esc(C.title) + '"></div></div></div>' +
         '<div id="s-urgent"></div>';
     }
@@ -257,10 +263,10 @@
         var natural = function (a, b) { return String(a).localeCompare(String(b), 'ja', { numeric: true }); };
         S.grades.slice().sort(natural).forEach(function (g) {
           var gOn = !!C.grades[g];
-          h += opt('<b>' + esc(g) + '</b>　<small style="color:var(--label-2)">学年全体</small>', gOn, 'data-grade="' + esc(g) + '"');
+          h += opt('<b>' + esc(L.fmt.grade(g)) + '</b>　<small style="color:var(--label-2)">学年全体</small>', gOn, 'data-grade="' + esc(g) + '"');
           S.classes.filter(function (c) { return c.grade === g; }).sort(function (a, b) { return natural(a.klass, b.klass); }).forEach(function (c) {
             var key = c.grade + '|' + c.klass;
-            h += opt(esc(c.klass), gOn || !!C.classes[key], 'data-class="' + esc(key) + '"' + (gOn ? ' disabled' : ''), 'padding-left:44px;' + (gOn ? 'opacity:.55' : ''));
+            h += opt(esc(L.fmt.klass(c.klass)), gOn || !!C.classes[key], 'data-class="' + esc(key) + '"' + (gOn ? ' disabled' : ''), 'padding-left:44px;' + (gOn ? 'opacity:.55' : ''));
           });
         });
         h += '</div><div class="group-footer">' + targetSummary() + '　<button type="button" class="link-btn" data-clear="select">すべて解除</button></div>';
@@ -269,7 +275,7 @@
         var list = S.students.filter(function (s) { return !q || (s.name + s.grade + s.klass).toLowerCase().indexOf(q) !== -1; });
         h += '<div class="group"><div class="pick-search"><input type="search" id="pickQ" placeholder="名前で検索" value="' + esc(C.pick) + '"></div><div class="pick-list">' +
           list.slice(0, 120).map(function (s) {
-            return opt(esc(s.name) + '　<small style="color:var(--label-2)">' + esc(s.grade + ' ' + s.klass) + '</small>', !!C.students[s.id], 'data-stu="' + esc(s.id) + '"');
+            return opt(esc(s.name) + '　<small style="color:var(--label-2)">' + esc(L.fmt.cls(s)) + '</small>', !!C.students[s.id], 'data-stu="' + esc(s.id) + '"');
           }).join('') + (list.length > 120 ? '<div class="row-wrap" style="color:var(--label-2)">ほか' + (list.length - 120) + '名（検索で絞り込めます）</div>' : '') + '</div></div>' +
           '<div class="group-footer">' + Object.keys(C.students).length + '名を選択中　<button type="button" class="link-btn" data-clear="students">すべて解除</button></div>';
       }
@@ -278,7 +284,7 @@
     function targetSummary() {
       var gs = Object.keys(C.grades);
       var cs = Object.keys(C.classes).filter(function (k) { return !C.grades[k.split('|')[0]]; });
-      var parts = gs.concat(cs.map(function (k) { return k.split('|').join(' '); }));
+      var parts = gs.map(L.fmt.grade).concat(cs.map(function (k) { var a = k.split('|'); return L.fmt.grade(a[0]) + L.fmt.klass(a[1]); }));
       return parts.length ? '選択中：' + esc(parts.join('、')) : '学年やクラスを選んでください';
     }
     function secWhen() {
@@ -490,6 +496,7 @@
         else if (f.indexOf('req-') === 0) C.questions[+f.slice(4)].required = t.checked;
         return;
       }
+      if (f === 'sender') C.sender = t.value;
       if (f === 'category') { C.category = t.value; drawSec('urgent'); }
     });
     // ----- 送信 -----
@@ -500,7 +507,8 @@
       if (!title) return fail('タイトルを入力してください');
       var bodyHtml = L.htmlToText(editor.innerHTML).trim() ? editor.innerHTML : '';
 
-      var payload = { token: L.token(), title: title, body: bodyHtml, category: C.category };
+      if (!C.sender) return fail('発信元（学年・分掌など）を選んでください');
+      var payload = { token: L.token(), title: title, body: bodyHtml, category: C.category, sender: C.sender };
       if (C.tmode === 'ALL') { payload.targetType = 'ALL'; payload.targetValue = ''; }
       else if (C.tmode === 'STUDENT') {
         var ids = Object.keys(C.students);
