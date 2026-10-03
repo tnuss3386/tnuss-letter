@@ -12,64 +12,26 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="連絡事項">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <style>
-    html, body { margin: 0; height: 100%; background: #1c3d6e; }
-    body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); box-sizing: border-box; }
-    iframe { display: block; width: 100%; height: 100%; border: 0; background: #f5f3ee; }
-    .msg {
-      display: none; position: fixed; inset: 0; padding: 32px 24px; background: #f5f3ee; color: #2a2f3a;
-      font: 16px/1.8 "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; text-align: center;
-    }
-    .msg.show { display: block; }
-    .msg button { margin-top: 16px; padding: 10px 24px; border: 0; border-radius: 999px; background: #1c3d6e; color: #fff; font-size: 15px; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <iframe id="frame" title="配布物・連絡事項" allow="clipboard-write"></iframe>
-  <div class="msg" id="offline">
-    <p>インターネットに接続されていません。<br>電波の良い場所でもう一度お試しください。</p>
-    <button onclick="location.reload()">再読み込み</button>
-  </div>
-  <div class="msg" id="notset">
-    <p>設定が未完了です。<br><code>config.js</code> の <code>GAS_URL</code> に、<br>ウェブアプリのURLを入力してください。</p>
-  </div>
+  <header>
+    <div class="header-inner">
+      <div>
+        <div class="sub">NOTICE BOARD</div>
+        <h1>配布物・連絡事項</h1>
+      </div>
+      <div class="userbox" id="userbox"></div>
+    </div>
+  </header>
+  <main>
+    <div class="offline-note hidden" id="notice"></div>
+    <div id="app"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+  </main>
 
   <script src="config.js"></script>
+  <script src="app.js"></script>
   <script>
-    var TOKEN_KEY = 'letterSessionToken';
-    var GAS_ORIGIN = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/;
-
-    function store(op, value) {
-      try {
-        if (op === 'get') return localStorage.getItem(TOKEN_KEY);
-        if (op === 'set') localStorage.setItem(TOKEN_KEY, value);
-        if (op === 'clear') localStorage.removeItem(TOKEN_KEY);
-      } catch (e) {}
-      return null;
-    }
-
-    // 画面（GAS側）からの「ログイン情報の保存・取得」依頼に応える
-    window.addEventListener('message', function (e) {
-      if (!GAS_ORIGIN.test(e.origin) || !e.data || typeof e.data.type !== 'string') return;
-      if (e.data.type === 'letter:getToken') {
-        e.source.postMessage({ type: 'letter:token', token: store('get') }, e.origin);
-      } else if (e.data.type === 'letter:setToken' && typeof e.data.token === 'string') {
-        store('set', e.data.token);
-      } else if (e.data.type === 'letter:clearToken') {
-        store('clear');
-      }
-    });
-
-    var frame = document.getElementById('frame');
-    if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(GAS_URL)) {
-      document.getElementById('notset').classList.add('show');
-    } else if (!navigator.onLine) {
-      document.getElementById('offline').classList.add('show');
-    } else {
-      frame.src = GAS_URL + '?pwa=1';
-    }
-    window.addEventListener('online', function () { location.reload(); });
-
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').catch(function () {});

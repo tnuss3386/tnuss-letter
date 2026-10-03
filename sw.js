@@ -1,6 +1,10 @@
-// 入れ物ページ（殻）だけをキャッシュする。投稿内容はキャッシュしない（常に最新を表示するため）。
-var CACHE = 'letter-shell-v2';
-var SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
+// 画面ファイル（殻）を端末に保存し、起動時はまず保存済みのものを即表示して、裏で最新に更新する。
+// 投稿内容そのもの（GASからのデータ）は別ドメインなのでここでは扱わない。
+var CACHE = 'letter-shell-v3';
+var SHELL = [
+  './', './index.html', './style.css', './app.js', './config.js', './manifest.webmanifest',
+  './icons/icon-192.png', './icons/icon-512.png'
+];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }));
@@ -18,12 +22,22 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   var req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  var url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+  if (url.pathname.slice(-10) === 'config.js') {
+    e.respondWith(fetch(req).catch(function () { return caches.match(req); }));
+    return;
+  }
   e.respondWith(
-    fetch(req).then(function (res) {
-      var copy = res.clone();
-      caches.open(CACHE).then(function (c) { c.put(req, copy); });
-      return res;
-    }).catch(function () { return caches.match(req); })
+    caches.match(req, { ignoreSearch: true }).then(function (cached) {
+      var network = fetch(req).then(function (res) {
+        if (res && res.ok) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (c) { c.put(req, copy); });
+        }
+        return res;
+      }).catch(function () { return cached; });
+      return cached || network;
+    })
   );
 });
