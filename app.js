@@ -137,6 +137,7 @@
   // ---------- ログイン ----------
   function renderLogin() {
     setUserbox(null);
+    hideBottomNav();
     app.innerHTML =
       '<div class="card">' +
       '<h2>ログイン</h2>' +
@@ -285,7 +286,8 @@
   // ---------- 保護者 ----------
   function renderParent(token, state) {
     setUserbox(state.name + ' さん');
-    app.innerHTML = renderFormLinks(state) + '<div id="pushBar"></div><div id="board"></div>';
+    app.innerHTML = '<div id="pushBar"></div><div id="board"></div>';
+    renderBottomNav(state);
     renderPushBar(token);
     renderBoard(document.getElementById('board'), state.posts, state.categories);
     refreshCurrent = function () { fetchState(token, true); };
@@ -308,15 +310,42 @@
     return form.url + (form.url.indexOf('?') === -1 ? '?' : '&') + q.join('&');
   }
 
-  function renderFormLinks(state) {
+  // ---------- 画面下のボタン（保護者のみ） ----------
+  var NAV_ICONS = {
+    notice: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+    survey: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 14l2 2 4-4"/>',
+    absence: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4M10 14l4 4M14 14l-4 4"/>',
+    link: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>'
+  };
+
+  function navIcon(name) {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (NAV_ICONS[name] || NAV_ICONS.link) + '</svg>';
+  }
+
+  // 左端は「連絡・配布物」（この画面）。続けて config.js の FORM_LINKS（欠席届など）を並べる
+  function renderBottomNav(state) {
+    var nav = document.getElementById('bottomNav');
     var forms = (typeof FORM_LINKS !== 'undefined' && FORM_LINKS) || [];
-    if (!forms.length) return '';
-    return '<div class="form-links">' + forms.map(function (f) {
-      return '<a class="form-link" href="' + escapeHtml(formLinkUrl(f, state)) + '" target="_blank" rel="noopener">' +
-        '<span class="form-link-label">' + escapeHtml(f.label) + '</span>' +
-        (f.note ? '<span class="form-link-note">' + escapeHtml(f.note) + '</span>' : '') +
-        '</a>';
-    }).join('') + '</div>';
+    var html = '<div class="nav-inner"><a class="nav-item active" href="#" id="navHome">' + navIcon('notice') + '<span>連絡・配布物</span></a>' +
+      forms.map(function (f) {
+        return '<a class="nav-item" href="' + escapeHtml(formLinkUrl(f, state)) + '" target="_blank" rel="noopener">' +
+          navIcon(f.icon) + '<span>' + escapeHtml(f.label) + '</span></a>';
+      }).join('') + '</div>';
+    nav.innerHTML = html;
+    nav.classList.remove('hidden');
+    document.body.classList.add('has-nav');
+    document.getElementById('navHome').onclick = function (e) {
+      e.preventDefault();
+      if (window.scrollY > 40) window.scrollTo({ top: 0, behavior: 'smooth' });
+      else if (refreshCurrent) refreshCurrent();
+    };
+  }
+
+  function hideBottomNav() {
+    var nav = document.getElementById('bottomNav');
+    nav.classList.add('hidden');
+    nav.innerHTML = '';
+    document.body.classList.remove('has-nav');
   }
 
   // 通知のオン・オフ表示（保護者のみ）
@@ -364,6 +393,7 @@
   // ---------- 教員 ----------
   function renderTeacher(token, state) {
     setUserbox(state.name + ' 先生');
+    hideBottomNav();
 
     var catOptions = state.categories.map(function (c) {
       return '<option value="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>';
