@@ -3,13 +3,13 @@
 //  - index.html と config.js は、まず最新を取りに行く（通信できないとき・遅いときだけ保存済みを使う）
 //  - ほかのファイルは、版の番号（?v=…）ごとに保存する（index.html が指す版のものだけが使われる）
 // 画面を更新したときは、BUILD の値を index.html の ?v=… と同じ値に変える。
-var BUILD = '20261004d';
+var BUILD = '20261004e';
 var CACHE = 'letter-shell-' + BUILD;
 var V = '?v=' + BUILD;
 var SHELL = [
   './', './index.html', './config.js', './manifest.webmanifest',
   './style.css' + V, './icons.js' + V, './ui.js' + V, './push.js' + V, './app.js' + V, './board.js' + V, './calendar.js' + V, './teacher.js' + V,
-  './icons/icon-192.png', './icons/icon-512.png', './icons/crest.png'
+  './icons/icon-192.png', './icons/icon-512.png', './icons/crest.png', './icons/badge.png'
 ];
 
 self.addEventListener('install', function (e) {
