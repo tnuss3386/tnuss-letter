@@ -117,7 +117,7 @@
       } else if (changed) {
         applyState(state);
         // 届け出のフォームを入力中に、画面を作り直して入力が消えないようにする
-        if (S.tab === 'form') $tabbar.innerHTML = tabbarHtml();
+        if (S.tab === 'form') L.refreshChrome();
         else render(null, hadCache);
       }
       updateBadge();
@@ -187,14 +187,23 @@
   }
 
   // ---------- ログイン ----------
+  /** アプリ名を、最初の単語（学校の略称）と、残り（サービス名）に分けて表示する */
+  function wordmark() {
+    var title = (typeof APP_TITLE !== 'undefined' && APP_TITLE) || '配布物・連絡事項';
+    var i = title.indexOf(' ');
+    return i > 0 ? '<span class="w1">' + esc(title.slice(0, i)) + '</span><span class="w2">' + esc(title.slice(i + 1)) + '</span>' : esc(title);
+  }
+  L.wordmark = wordmark;
+
   function showLogin() {
     setChrome(false);
     $nav.innerHTML = '';
-    document.body.classList.remove('has-tabs');
     $view.innerHTML =
       '<div class="page login">' +
-      '<img class="crest" src="icons/crest.png" alt="" width="92">' +
-      '<h1>配布物・連絡事項</h1>' +
+      '<img class="crest" src="icons/crest.png" alt="" width="96">' +
+      '<h1 class="wordmark">' + wordmark() + '</h1>' +
+      ((typeof APP_TAGLINE !== 'undefined' && APP_TAGLINE) ? '<p class="tagline">' + esc(APP_TAGLINE) + '</p>' : '') +
+      ((typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) ? '<p class="sub">' + esc(SCHOOL_NAME) + '</p>' : '') +
       '<p class="lead">発行されたIDとパスワードで<br>ログインしてください</p>' +
       '<div class="group"><div class="field"><label for="loginId">ID</label>' +
       '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID"></div>' +
@@ -233,7 +242,21 @@
   }
 
   // ---------- 画面の枠 ----------
+  // 画面の幅が広いとき（PC・タブレットの横向き）は、サイドバー＋一覧＋詳細の3つの領域で表示する
+  var mq = window.matchMedia('(min-width: 900px)');
+  function isWide() { return mq.matches; }
+  L.isWide = isWide;
+  var SB_KEY = 'letterSidebar';
+
+  function sidebarCollapsed() {
+    var pref = L.store.get(SB_KEY);
+    if (pref === 'closed') return true;
+    if (pref === 'open') return false;
+    return window.innerWidth < 1200;   // 窓が狭いときは、自動でたたむ
+  }
+
   function setChrome(on) {
+    if (!on) document.body.classList.remove('wide');
     $tabbar.classList.toggle('hidden', !on);
     $view.classList.toggle('no-tabbar', !on);
   }
@@ -263,33 +286,65 @@
   }
   L.formUrl = formUrl;
 
-  function tabbarHtml() {
-    var tabs = [];
-    function tab(id, label, icon, badge, extra) {
-      return '<button class="tab' + (S.tab === id ? ' active' : '') + '" data-act="tab" data-tab="' + id + '"' + (extra || '') + ' aria-label="' + esc(label) + '">' +
-        L.icon(icon) + '<span class="lbl">' + esc(label) + '</span>' + (badge ? '<span class="tab-badge">' + (badge > 99 ? '99+' : badge) + '</span>' : '') + '</button>';
-    }
-    tabs.push(tab('home', '連絡', 'notice', S.role === 'parent' ? unreadCount() : 0));
-    tabs.push(tab('cal', '予定', 'calendar'));
+  /** 下のメニュー（スマホ）とサイドバー（PC）で共通の、移動先の一覧 */
+  function navItems() {
+    var items = [];
+    items.push({ kind: 'tab', id: 'home', label: '連絡', icon: 'notice', badge: S.role === 'parent' ? unreadCount() : 0 });
+    items.push({ kind: 'tab', id: 'cal', label: '予定', icon: 'calendar' });
     if (S.role === 'parent') {
-      tabs.push(tab('survey', 'アンケート', 'survey', pendingSurveys()));
-      tabs.push(tab('iv', '面談', 'interview', pendingInterviews()));
+      items.push({ kind: 'tab', id: 'survey', label: 'アンケート', icon: 'survey', badge: pendingSurveys() });
+      items.push({ kind: 'tab', id: 'iv', label: '面談', icon: 'interview', badge: pendingInterviews() });
       var forms = (typeof FORM_LINKS !== 'undefined' && FORM_LINKS) || [];
-      if (forms.length === 1) {
-        tabs.push(tab('form', forms[0].label, forms[0].icon || 'link', 0, ' data-idx="0"'));
-      } else if (forms.length > 1) {
-        tabs.push('<button class="tab' + (S.tab === 'form' ? ' active' : '') + '" data-act="forms">' + L.icon('link') + '<span class="lbl">届け出</span></button>');
-      }
+      if (forms.length === 1) items.push({ kind: 'tab', id: 'form', label: forms[0].label, icon: forms[0].icon || 'link', idx: 0 });
+      else if (forms.length > 1) items.push({ kind: 'forms', id: 'form', label: '届け出', icon: 'link' });
     } else {
-      tabs.push('<button class="tab" data-act="compose" aria-label="新規投稿">' + L.icon('compose') + '<span class="lbl">作成</span></button>');
+      items.push({ kind: 'compose', label: '作成', icon: 'compose' });
     }
-    return '<div class="tabbar-inner">' + tabs.join('') + '</div>';
+    return items;
+  }
+
+  function itemAttrs(it) {
+    if (it.kind === 'tab') return ' data-act="tab" data-tab="' + it.id + '"' + (it.idx != null ? ' data-idx="' + it.idx + '"' : '');
+    return it.kind === 'forms' ? ' data-act="forms"' : ' data-act="compose"';
+  }
+
+  function tabbarHtml() {
+    return '<div class="tabbar-inner">' + navItems().map(function (it) {
+      var badge = it.badge ? '<span class="tab-badge">' + (it.badge > 99 ? '99+' : it.badge) + '</span>' : '';
+      return '<button class="tab' + (it.id && S.tab === it.id ? ' active' : '') + '"' + itemAttrs(it) + ' aria-label="' + esc(it.label) + '">' +
+        '<span class="ico">' + L.icon(it.icon, '', !!(it.id && S.tab === it.id)) + '</span><span class="lbl">' + esc(it.label) + '</span>' + badge + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function sidebarHtml() {
+    var school = (typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) || '';
+    var collapsed = sidebarCollapsed();
+    var h = '<aside class="sidebar" aria-label="メニュー">' +
+      '<div class="sb-brand"><img src="icons/crest.png" alt=""><div class="t"><b class="wordmark">' + wordmark() + '</b>' + (school ? '<span>' + esc(school) + '</span>' : '') + '</div></div>';
+    if (S.role === 'teacher') h += '<button class="sb-primary" data-act="compose" title="新規投稿">' + L.icon('compose') + '<span>新規投稿</span></button>';
+    if (S.role === 'parent' && S.children.length > 1) {
+      h += '<button class="sb-item sb-who" data-act="switchChild" title="子どもを切り替える">' + L.icon('person') +
+        '<span class="sb-label">' + esc(S.child.name) + '<small>' + esc(S.child.grade + ' ' + S.child.klass) + '</small></span>' + L.icon('chevD') + '</button><div class="sb-sep"></div>';
+    }
+    h += '<div class="sb-head">メニュー</div>';
+    navItems().forEach(function (it) {
+      if (it.kind === 'compose') return;
+      var badge = it.badge ? '<span class="sb-badge">' + (it.badge > 99 ? '99+' : it.badge) + '</span>' : '';
+      var on = !!(it.id && S.tab === it.id);
+      h += '<button class="sb-item' + (on ? ' active' : '') + '"' + itemAttrs(it) + ' title="' + esc(it.label) + '">' + L.icon(it.icon, '', on) + '<span class="sb-label">' + esc(it.label) + '</span>' + badge + '</button>';
+    });
+    h += '<div class="sb-sep"></div>' +
+      '<button class="sb-item sb-who" data-act="account" title="アカウント">' + L.icon('person') +
+      '<span class="sb-label">' + esc(S.name) + '<small>' + (S.role === 'teacher' ? '教員' : (S.child ? esc(S.child.grade + ' ' + S.child.klass) : '')) + '</small></span></button>' +
+      '<button class="sb-item sb-who sb-toggle" data-act="toggleSidebar" title="サイドバーの表示を切り替える" aria-label="サイドバーの表示を切り替える">' +
+      L.icon(collapsed ? 'panelOpen' : 'panelClose') + '<span class="sb-label">' + (collapsed ? '広げる' : '閉じる') + '</span></button></aside>';
+    return h;
   }
 
   function navHtml(cfg) {
     var left = '';
     if (cfg.back) {
-      left = '<button class="nb-btn nb-back" data-act="back" aria-label="戻る">' + L.icon('chevL') + '<span>' + esc(cfg.back) + '</span></button>';
+      left = '<button class="nb-btn nb-back" data-act="back" aria-label="戻る">' + L.icon('back') + '</button>';
     } else if (S.role === 'parent' && S.children.length > 1) {
       left = '<button class="nb-child" data-act="switchChild" aria-label="子どもを切り替える"><span>' + esc(S.child.name) + '</span>' + L.icon('chevD') + '</button>';
     }
@@ -298,7 +353,64 @@
       right += '<button class="nb-btn" data-act="compose" aria-label="新規投稿">' + L.icon('compose') + '</button>';
     }
     right += '<button class="nb-btn" data-act="account" aria-label="アカウント"><span class="nb-avatar">' + L.icon('person') + '</span></button>';
-    return '<div class="nb-inner"><div class="nb-left">' + left + '</div><div class="nb-title">' + esc(cfg.title || '') + '</div><div class="nb-right">' + right + '</div></div>';
+    var title = cfg.back ? (cfg.title || '') : (cfg.title || '');
+    return '<div class="nb-inner">' + (left ? '<div class="nb-left">' + left + '</div>' : '') + '<div class="nb-title">' + esc(title) + '</div><div class="nb-right">' + right + '</div></div>';
+  }
+
+  var TAB_EMPTY = {
+    home: ['notice', '連絡を選んでください', '左の一覧から選ぶと、ここに内容が表示されます。'],
+    cal: ['calendar', '予定を選んでください', '日付を選んで、予定をクリックすると、内容が表示されます。'],
+    survey: ['survey', 'アンケートを選んでください', '左の一覧から選ぶと、回答できます。'],
+    iv: ['interview', '面談を選んでください', '左の一覧から選ぶと、予約できます。']
+  };
+  function emptyDetail() {
+    var e = TAB_EMPTY[S.tab] || TAB_EMPTY.home;
+    return '<div class="empty-detail">' + L.icon(e[0]) + '<b>' + esc(e[1]) + '</b><span>' + esc(e[2]) + '</span></div>';
+  }
+
+  function markSelected() {
+    Array.prototype.forEach.call($view.querySelectorAll('[data-act="open"]'), function (r) {
+      r.classList.toggle('selected', r.getAttribute('data-id') === S.detail);
+    });
+  }
+
+  function renderDetailPane() {
+    var pd = document.getElementById('paneDetail');
+    if (!pd || S.tab === 'form') return render();
+    var vd = S.detail ? L.views.detail(S.detail) : null;
+    pd.innerHTML = vd ? '<div class="detail-inner">' + vd.html + '</div>' : emptyDetail();
+    pd.scrollTop = 0;
+    if (vd && vd.bind) vd.bind(pd);
+    markSelected();
+  }
+
+  function renderWide(keepScroll) {
+    var pl = document.getElementById('paneList'), pd = document.getElementById('paneDetail');
+    var listTop = keepScroll && pl ? pl.scrollTop : 0, detailTop = keepScroll && pd ? pd.scrollTop : 0;
+    var offline = '<div id="offlineBar" class="offline-bar' + (S.offline ? '' : ' hidden') + '" style="margin-top:0">通信できないため、前回表示した内容を表示しています。</div>';
+    var main, vl = null, vd = null, vf = null;
+    if (S.tab === 'form') {
+      vf = L.views.form();
+      main = '<section class="pane pane-main"><header class="pane-head"><h1>' + esc(vf.nav.title) + '</h1>' + (vf.nav.right || '') + '</header>' +
+        '<div class="pane-body fill" id="paneDetail">' + vf.html + '</div></section>';
+    } else {
+      vl = (L.views[S.tab] || L.views.home)();
+      vd = S.detail ? L.views.detail(S.detail) : null;
+      main = '<section class="pane pane-list"><header class="pane-head"><h1>' + esc(vl.nav.title) + '</h1></header>' +
+        '<div class="pane-body" id="paneList">' + offline + vl.html + '</div></section>' +
+        '<section class="pane pane-detail"><div class="pane-body" id="paneDetail">' + (vd ? '<div class="detail-inner">' + vd.html + '</div>' : emptyDetail()) + '</div></section>';
+    }
+    document.body.classList.add('wide');
+    $nav.innerHTML = '';
+    $view.classList.remove('fill');
+    $view.innerHTML = '<div class="shell' + (sidebarCollapsed() ? ' sb-collapsed' : '') + '">' + sidebarHtml() + '<div class="main">' + main + '</div></div>';
+    if (vl && vl.bind) vl.bind($view);
+    if (vd && vd.bind) vd.bind($view);
+    if (vf && vf.bind) vf.bind($view);
+    var nl = document.getElementById('paneList'), nd = document.getElementById('paneDetail');
+    if (nl && listTop) nl.scrollTop = listTop;
+    if (nd && detailTop) nd.scrollTop = detailTop;
+    markSelected();
   }
 
   // ---------- 描画 ----------
@@ -307,12 +419,13 @@
    */
   function render(anim, keepScroll) {
     if (!S.role) return;
+    if (isWide()) { renderWide(keepScroll); return; }
+    document.body.classList.remove('wide');
     var y = keepScroll ? window.scrollY : 0;
     var v;
     if (S.detail) v = L.views.detail(S.detail);
     else v = (L.views[S.tab] || L.views.home)();
 
-    document.body.classList.add('has-tabs');
     setChrome(true);
     $view.classList.toggle('fill', !!v.fill);
     $nav.classList.toggle('solid', !!v.fill);
@@ -327,20 +440,50 @@
   }
   L.render = render;
 
+  /** 未読数などが変わったとき、メニュー（スマホ）／サイドバー（PC）だけを更新する */
+  L.refreshChrome = function () {
+    if (isWide()) {
+      var sb = $view.querySelector('.sidebar');
+      if (sb) sb.outerHTML = sidebarHtml();
+    } else {
+      $tabbar.innerHTML = tabbarHtml();
+    }
+  };
+  L.tabbarHtml = L.refreshChrome;
+
   function updateScrolled() {
-    var lt = $view.querySelector('.large-title');
-    var scrolled;
-    if ($nav.classList.contains('solid')) scrolled = true;
-    else if (lt) scrolled = lt.getBoundingClientRect().bottom < $nav.getBoundingClientRect().height + 4;
-    else scrolled = window.scrollY > 4;
-    $nav.classList.toggle('scrolled', scrolled);
+    $nav.classList.toggle('scrolled', window.scrollY > 2);
   }
   window.addEventListener('scroll', updateScrolled, { passive: true });
 
+  function onWidthChange() { if (S.role) render(null, false); }
+  if (mq.addEventListener) mq.addEventListener('change', onWidthChange); else mq.addListener(onWidthChange);
+  window.addEventListener('resize', L.debounce(function () {
+    // メディアクエリの通知が届かない環境でも、幅が変わったら表示を切り替える
+    if (S.role && isWide() !== document.body.classList.contains('wide')) { render(null, false); return; }
+    var shell = document.querySelector('.shell');
+    if (shell && isWide()) shell.classList.toggle('sb-collapsed', sidebarCollapsed());
+  }, 150));
+
+  L.acts.toggleSidebar = function () {
+    L.store.set(SB_KEY, sidebarCollapsed() ? 'open' : 'closed');
+    var shell = document.querySelector('.shell');
+    if (shell) shell.classList.toggle('sb-collapsed', sidebarCollapsed());
+    L.refreshChrome();
+  };
+
   // ---------- 画面遷移 ----------
   L.go = function (tab, idx) {
+    if (isWide()) {
+      if (tab === 'form') S.formIdx = idx || 0;
+      else if (S.tab === tab && !S.detail) { L.refresh(); return; }
+      S.detail = null;
+      S.tab = tab;
+      render();
+      return;
+    }
     if (tab === 'form') {
-      // 届け出のフォームは、下のボタンを残したまま、アプリの中に表示する
+      // 届け出のフォームは、下のメニューを残したまま、アプリの中に表示する
       S.detail = null;
       S.formIdx = idx || 0;
       S.scrollByTab[S.tab] = window.scrollY;
@@ -366,27 +509,38 @@
   function ownEntry(st) { return !!(st && st.d && st.n === S.nonce); }
 
   L.openPost = function (id) {
-    S.scrollByTab[S.tab] = window.scrollY;
     S.detail = id;
-    try { history.pushState({ d: id, n: S.nonce }, '', '#post=' + id); } catch (e) {}
-    render('push');
-    window.scrollTo(0, 0);
+    if (isWide()) {
+      // 分割表示では、一覧の選択だけを入れ替える（履歴は増やさず、共有できるURLだけ更新する）
+      try { history.replaceState({ d: id, n: S.nonce, wide: true }, '', '#post=' + id); } catch (e) {}
+      renderDetailPane();
+    } else {
+      S.scrollByTab[S.tab] = window.scrollY;
+      try { history.pushState({ d: id, n: S.nonce }, '', '#post=' + id); } catch (e) {}
+      render('push');
+      window.scrollTo(0, 0);
+    }
     if (S.role === 'parent') markRead(id);
   };
 
   L.back = function () {
-    if (ownEntry(history.state)) { history.back(); return; }
+    if (!isWide() && ownEntry(history.state)) { history.back(); return; }
     closeDetail();
   };
 
   function closeDetail() {
     S.detail = null;
+    if (isWide()) {
+      try { history.replaceState({ root: true }, '', location.pathname + location.search); } catch (e) {}
+      renderDetailPane();
+      return;
+    }
     render('pop');
     window.scrollTo(0, S.scrollByTab[S.tab] || 0);
   }
 
   window.addEventListener('popstate', function (e) {
-    if (!S.role) return;
+    if (!S.role || isWide()) return;
     if (ownEntry(e.state)) { S.detail = e.state.d; render('push'); window.scrollTo(0, 0); }
     else if (S.detail) closeDetail();
   });
@@ -412,11 +566,11 @@
       cached.posts.forEach(function (x) { if (x.id === id) x.read = true; });
       L.store.cacheSet('state:parent', cached);
     }
+    Array.prototype.forEach.call($view.querySelectorAll('.post-row[data-id="' + id + '"]'), function (r) { r.classList.remove('unread'); });
     updateBadge();
-    $tabbar.innerHTML = tabbarHtml();
+    L.refreshChrome();
     L.api('markRead', { token: L.token(), studentId: S.child.id, postIds: [id] }).catch(function () {});
   }
-
   // ---------- 操作（data-act）の受け付け ----------
   document.addEventListener('click', function (e) {
     var el = e.target.closest('[data-act]');
@@ -521,5 +675,4 @@
 
   L.boot = boot;
   L.updateBadge = updateBadge;
-  L.tabbarHtml = function () { $tabbar.innerHTML = tabbarHtml(); };
 })();

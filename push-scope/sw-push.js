@@ -12,7 +12,7 @@ var messaging = firebase.messaging();
 // アプリを開いていないときに届いた通知を表示する（毎回必ず表示する。iPhoneの決まりでもある）
 messaging.onBackgroundMessage(function (payload) {
   var d = (payload && payload.data) || {};
-  return self.registration.showNotification(d.title || '連絡事項', {
+  return self.registration.showNotification(d.title || 'TNUSS Bridge', {
     body: d.body || '',
     icon: ICON,
     badge: ICON,

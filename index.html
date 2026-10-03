@@ -3,18 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>配布物・連絡事項</title>
-  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <title>TNUSS Bridge</title>
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#181c22" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="連絡事項">
+  <meta name="apple-mobile-web-app-title" content="TNUSS Bridge">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261004c">
+  <script>
+    // 起動できないときに、原因を画面に表示するための記録
+    window.__errors = [];
+    window.addEventListener('error', function (e) {
+      window.__errors.push((e.message || 'エラー') + (e.filename ? '（' + String(e.filename).split('/').pop() + ':' + e.lineno + '）' : ''));
+    });
+    window.showFatal = function (title, text) {
+      var v = document.getElementById('view');
+      if (!v) return;
+      var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+      v.innerHTML = '<div style="padding:96px 28px 28px;text-align:center;font-family:-apple-system,sans-serif;color:#555;line-height:1.7">' +
+        '<div style="font-size:19px;font-weight:700;color:#111;margin-bottom:10px">' + esc(title) + '</div>' +
+        '<div style="white-space:pre-wrap;font-size:14px">' + esc(text) + '</div>' +
+        '<button onclick="location.reload()" style="margin-top:22px;padding:12px 28px;border:0;border-radius:24px;background:#1f4b8f;color:#fff;font-size:16px">再読み込み</button></div>';
+    };
+  </script>
 </head>
 <body>
   <header id="navbar" class="navbar"></header>
@@ -24,14 +40,46 @@
   <nav id="tabbar" class="tabbar hidden" aria-label="メニュー"></nav>
 
   <script src="config.js"></script>
-  <script src="ui.js"></script>
-  <script src="push.js"></script>
-  <script src="app.js"></script>
-  <script src="board.js"></script>
-  <script src="calendar.js"></script>
-  <script src="teacher.js"></script>
+  <script src="icons.js?v=20261004c"></script>
+  <script src="ui.js?v=20261004c"></script>
+  <script src="push.js?v=20261004c"></script>
+  <script src="app.js?v=20261004c"></script>
+  <script src="board.js?v=20261004c"></script>
+  <script src="calendar.js?v=20261004c"></script>
+  <script src="teacher.js?v=20261004c"></script>
   <script>
-    L.boot();
+    (function () {
+      function has(expr) { try { return !!(new Function('return (' + expr + ')'))(); } catch (e) { return false; } }
+      var checks = [
+        ['config.js', 'typeof GAS_URL === "string"'],
+        ['icons.js', 'window.L && L.iconPaths'],
+        ['ui.js', 'window.L && L.ui'],
+        ['app.js', 'window.L && L.boot'],
+        ['board.js', 'window.L && L.views && L.views.home'],
+        ['calendar.js', 'window.L && L.views && L.views.cal'],
+        ['teacher.js', 'window.L && L.teacher']
+      ];
+      var missing = checks.filter(function (c) { return !has(c[1]); }).map(function (c) { return c[0]; });
+      if (missing.length) {
+        showFatal('アプリを起動できません', '次のファイルが見つからないか、古いままです。\n\n' + missing.join('\n') +
+          '\n\nGitHub に、pwa フォルダの中身がすべてアップロードされているか確認してください。' +
+          (window.__errors.length ? '\n\n（' + window.__errors[0] + '）' : ''));
+        return;
+      }
+      try {
+        L.boot();
+      } catch (e) {
+        showFatal('アプリを起動できません', String(e && e.message || e));
+        return;
+      }
+      // 起動後も画面が読み込み中のまま止まっているとき（スクリプトのエラー）は、内容を表示する
+      setTimeout(function () {
+        var v = document.getElementById('view');
+        if (window.__errors.length && v && v.querySelector('.skeleton') && !(window.L && L.S && L.S.role)) {
+          showFatal('アプリを起動できません', window.__errors.slice(0, 3).join('\n'));
+        }
+      }, 6000);
+    })();
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').catch(function () {});

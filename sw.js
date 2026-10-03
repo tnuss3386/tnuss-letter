@@ -1,13 +1,22 @@
-// 画面ファイル（殻）を端末に保存し、起動時はまず保存済みのものを即表示して、裏で最新に更新する。
-// 投稿内容そのもの（GASからのデータ）は別ドメインなのでここでは扱わない。
-var CACHE = 'letter-shell-v5';
+// 画面ファイル（殻）を端末に保存して、すばやく起動する。
+// 更新時に新旧のファイルが混ざって動かなくならないよう、
+//  - index.html と config.js は、まず最新を取りに行く（通信できないとき・遅いときだけ保存済みを使う）
+//  - ほかのファイルは、版の番号（?v=…）ごとに保存する（index.html が指す版のものだけが使われる）
+// 画面を更新したときは、BUILD の値を index.html の ?v=… と同じ値に変える。
+var BUILD = '20261004c';
+var CACHE = 'letter-shell-' + BUILD;
+var V = '?v=' + BUILD;
 var SHELL = [
-  './', './index.html', './style.css', './ui.js', './app.js', './board.js', './calendar.js', './teacher.js', './push.js',
-  './config.js', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/crest.png'
+  './', './index.html', './config.js', './manifest.webmanifest',
+  './style.css' + V, './icons.js' + V, './ui.js' + V, './push.js' + V, './app.js' + V, './board.js' + V, './calendar.js' + V, './teacher.js' + V,
+  './icons/icon-192.png', './icons/icon-512.png', './icons/crest.png'
 ];
 
 self.addEventListener('install', function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }));
+  e.waitUntil(caches.open(CACHE).then(function (c) {
+    // 1つ取得に失敗しても、ほかは保存する
+    return Promise.all(SHELL.map(function (u) { return c.add(u).catch(function () {}); }));
+  }));
   self.skipWaiting();
 });
 
@@ -20,24 +29,44 @@ self.addEventListener('activate', function (e) {
   self.clients.claim();
 });
 
+function networkFirst(req, timeoutMs) {
+  return new Promise(function (resolve) {
+    var settled = false;
+    function fromCache() {
+      caches.match(req, { ignoreSearch: false }).then(function (hit) { if (!settled) { settled = true; resolve(hit || fetch(req)); } });
+    }
+    var timer = setTimeout(fromCache, timeoutMs);
+    fetch(req).then(function (res) {
+      clearTimeout(timer);
+      if (res && res.ok) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, copy); });
+      }
+      if (!settled) { settled = true; resolve(res); }
+    }).catch(function () { clearTimeout(timer); fromCache(); });
+  });
+}
+
 self.addEventListener('fetch', function (e) {
   var req = e.request;
   var url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.slice(-10) === 'config.js') {
-    e.respondWith(fetch(req).catch(function () { return caches.match(req); }));
+  var path = url.pathname;
+  var isIndex = req.mode === 'navigate' || path.slice(-1) === '/' || path.slice(-10) === 'index.html';
+  if (isIndex || path.slice(-9) === 'config.js') {
+    e.respondWith(networkFirst(req, 2500));
     return;
   }
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then(function (cached) {
-      var network = fetch(req).then(function (res) {
+    caches.match(req).then(function (hit) {
+      if (hit) return hit;
+      return fetch(req).then(function (res) {
         if (res && res.ok) {
           var copy = res.clone();
           caches.open(CACHE).then(function (c) { c.put(req, copy); });
         }
         return res;
-      }).catch(function () { return cached; });
-      return cached || network;
+      });
     })
   );
 });

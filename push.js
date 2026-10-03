@@ -69,7 +69,7 @@
         // アプリを開いている間に届いた通知も、表示して一覧を更新する
         fm.onMessage(messaging, function (payload) {
           var d = (payload && payload.data) || {};
-          registration.showNotification(d.title || '連絡事項', {
+          registration.showNotification(d.title || ((typeof APP_TITLE !== 'undefined' && APP_TITLE) || 'TNUSS Bridge'), {
             body: d.body || '',
             icon: 'icons/icon-192.png',
             tag: d.tag || 'letter',

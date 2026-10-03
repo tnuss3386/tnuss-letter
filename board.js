@@ -170,10 +170,10 @@
   L.views.home = function () {
     var src = sourcePosts();
     if (src === null || src === undefined) {
-      return { nav: { title: '連絡' }, html: '<h1 class="large-title">連絡</h1><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>' };
+      return { nav: { title: '連絡' }, html: '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>' };
     }
     limit = PAGE_SIZE;
-    var html = '<h1 class="large-title">連絡</h1>' + pushBannerHtml() +
+    var html = pushBannerHtml() +
       '<div class="search' + (S.filter.q ? ' has-text' : '') + '">' + L.icon('search', 'mag') +
       '<input id="q" type="search" placeholder="検索" value="' + esc(S.filter.q) + '" enterkeyhint="search" autocomplete="off">' +
       '<button class="clear" data-act="clearSearch" aria-label="消す">' + L.icon('xmark') + '</button></div>' +
@@ -222,7 +222,7 @@
     items.todo.sort(byDeadline);
     var key = type === 'survey' ? 'survey' : 'iv';
     var cur = items[S.seg[key]];
-    var html = '<h1 class="large-title">' + title + '</h1>' + segHtml(key, items);
+    var html = segHtml(key, items);
     html += cur.length ? groupedRows(cur, false) : emptyState(icon, labels[S.seg[key]][0], labels[S.seg[key]][1]);
     return { nav: { title: title }, html: html };
   }
@@ -300,7 +300,7 @@
 
   L.views.detail = function (id) {
     var p = L.findPost(id);
-    var nav = { back: backLabel(), title: '', hideCompose: true };
+    var nav = { back: backLabel(), title: backLabel(), hideCompose: true };
     if (!p) {
       return { nav: nav, html: emptyState('info', '見つかりません', 'この連絡は削除されたか、表示できません。') };
     }
@@ -454,21 +454,22 @@
     var p = L.findPost(el.getAttribute('data-id'));
     var slot = p && p.option.slots.filter(function (s) { return s.id === el.getAttribute('data-slot'); })[0];
     if (!slot || slot.state === 'mine') return;
-    L.ui.actions({
+    L.ui.confirm({
       title: '面談を予約しますか？',
       message: L.fmt.md(slot.start) + ' ' + slotRange(slot) + (p.option.mySlot ? '\n（いまの予約は取り消されます）' : ''),
-      items: [{ label: '予約する', onTap: function () {
-        L.api('bookSlot', { token: L.token(), studentId: S.child.id, postId: p.id, slotId: slot.id }).then(function (res) {
-          if (!res.ok) { L.ui.toast(res.error, true); L.refresh(); return; }
-          p.option.slots.forEach(function (s) { if (s.state === 'mine') s.state = 'free'; });
-          slot.state = 'mine';
-          p.option.mySlot = slot;
-          L.store.cacheSet('state:parent', Object.assign({}, L.store.cacheGet('state:parent'), { posts: S.posts }));
-          L.updateBadge();
-          L.ui.toast('予約しました');
-          L.render(null, true);
-        }).catch(function () { L.ui.toast('通信できませんでした。もう一度お試しください', true); });
-      } }]
+      confirm: '予約する'
+    }).then(function (ok) {
+      if (!ok) return;
+      L.api('bookSlot', { token: L.token(), studentId: S.child.id, postId: p.id, slotId: slot.id }).then(function (res) {
+        if (!res.ok) { L.ui.toast(res.error, true); L.refresh(); return; }
+        p.option.slots.forEach(function (s) { if (s.state === 'mine') s.state = 'free'; });
+        slot.state = 'mine';
+        p.option.mySlot = slot;
+        L.store.cacheSet('state:parent', Object.assign({}, L.store.cacheGet('state:parent'), { posts: S.posts }));
+        L.updateBadge();
+        L.ui.toast('予約しました');
+        L.render(null, true);
+      }).catch(function () { L.ui.toast('通信できませんでした。もう一度お試しください', true); });
     });
   };
 

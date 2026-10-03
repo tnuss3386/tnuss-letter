@@ -101,12 +101,11 @@
 
   L.views.cal = function () {
     if (S.role === 'teacher' && S.tposts === null) {
-      return { nav: { title: '予定' }, html: '<h1 class="large-title">予定</h1><div class="skeleton"></div><div class="skeleton"></div>' };
+      return { nav: { title: '予定' }, html: '<div class="skeleton"></div><div class="skeleton"></div>' };
     }
     return {
       nav: { title: '予定' },
-      html: '<h1 class="large-title">予定</h1>' +
-        '<div class="cal-head"><span class="month" id="calMonth"></span><span class="ctrl">' +
+      html: '<div class="cal-head"><span class="month" id="calMonth"></span><span class="ctrl">' +
         '<button data-act="calPrev" aria-label="前の月">' + L.icon('chevL') + '</button>' +
         '<button data-act="calToday">今日</button>' +
         '<button data-act="calNext" aria-label="次の月">' + L.icon('chevR') + '</button></span></div>' +
