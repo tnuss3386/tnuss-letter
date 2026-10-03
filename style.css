@@ -209,6 +209,35 @@ details.post > summary:hover { background: #fafaf7; }
 .more-btn:hover { background: var(--primary-soft); }
 .empty { text-align: center; color: var(--muted); padding: 40px 10px; }
 
+/* ---------- 届け出フォームへのボタン ---------- */
+.form-links { display: grid; gap: 10px; margin-bottom: 14px; }
+.form-link {
+  display: block; text-decoration: none; color: var(--text);
+  background: var(--surface); border-radius: var(--radius); padding: 14px 44px 14px 16px;
+  box-shadow: var(--shadow); border-left: 5px solid var(--accent); position: relative;
+}
+.form-link:after {
+  content: ""; position: absolute; right: 18px; top: 50%; width: 8px; height: 8px; margin-top: -5px;
+  border-right: 2px solid var(--primary); border-top: 2px solid var(--primary); transform: rotate(45deg);
+}
+.form-link:hover { background: #fafaf7; }
+.form-link-label { display: block; font-weight: 700; color: var(--primary); }
+.form-link-note { display: block; font-size: 12px; color: var(--muted); }
+
+/* ---------- 通知の設定 ---------- */
+.push-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: var(--primary-soft); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px;
+  font-size: 14px; line-height: 1.6;
+}
+.push-bar button { margin: 0; white-space: nowrap; }
+.push-line { font-size: 12px; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+button.link {
+  margin: 0; padding: 0; background: none; color: var(--primary); border: none; border-radius: 0;
+  font-size: 12px; text-decoration: underline; text-underline-offset: 2px;
+}
+button.link:hover { background: none; }
+
 /* ---------- 読み込み中の表示 ---------- */
 .skeleton { height: 76px; border-radius: var(--radius); margin-bottom: 10px;
   background: linear-gradient(90deg, #ece9e1 25%, #f6f4ee 50%, #ece9e1 75%); background-size: 200% 100%;

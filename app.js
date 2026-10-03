@@ -14,6 +14,7 @@
 
   var lastFetch = 0;
   var refreshCurrent = null;
+  var pushSynced = false;
 
   // ---------- 端末への保存（ログイン情報と、前回表示したデータ） ----------
   var storage = {
@@ -81,6 +82,8 @@
     if (!label) { userbox.innerHTML = ''; return; }
     userbox.innerHTML = '<span class="who">' + escapeHtml(label) + '</span><button class="ghost" id="logoutBtn">ログアウト</button>';
     document.getElementById('logoutBtn').onclick = function () {
+      if (window.LetterPush) window.LetterPush.disable(api, storage.get(TOKEN_KEY));
+      pushSynced = false;
       clearSession();
       setNotice('');
       renderLogin();
@@ -282,9 +285,80 @@
   // ---------- 保護者 ----------
   function renderParent(token, state) {
     setUserbox(state.name + ' さん');
-    app.innerHTML = '<div id="board"></div>';
+    app.innerHTML = renderFormLinks(state) + '<div id="pushBar"></div><div id="board"></div>';
+    renderPushBar(token);
     renderBoard(document.getElementById('board'), state.posts, state.categories);
     refreshCurrent = function () { fetchState(token, true); };
+  }
+
+  // 既存のGoogleフォーム（欠席届など）へのボタン。子どもの情報を入力済みの状態で開く。config.js の FORM_LINKS で設定
+  function todayLocal() {
+    var d = new Date();
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  function formLinkUrl(form, state) {
+    var fields = form.fields || {};
+    var values = { grade: state.grade, klass: state.klass, student: state.name, date: todayLocal() };
+    var q = ['usp=pp_url'];
+    Object.keys(fields).forEach(function (key) {
+      if (fields[key] && values[key]) q.push(encodeURIComponent(fields[key]) + '=' + encodeURIComponent(values[key]));
+    });
+    return form.url + (form.url.indexOf('?') === -1 ? '?' : '&') + q.join('&');
+  }
+
+  function renderFormLinks(state) {
+    var forms = (typeof FORM_LINKS !== 'undefined' && FORM_LINKS) || [];
+    if (!forms.length) return '';
+    return '<div class="form-links">' + forms.map(function (f) {
+      return '<a class="form-link" href="' + escapeHtml(formLinkUrl(f, state)) + '" target="_blank" rel="noopener">' +
+        '<span class="form-link-label">' + escapeHtml(f.label) + '</span>' +
+        (f.note ? '<span class="form-link-note">' + escapeHtml(f.note) + '</span>' : '') +
+        '</a>';
+    }).join('') + '</div>';
+  }
+
+  // 通知のオン・オフ表示（保護者のみ）
+  function renderPushBar(token, message) {
+    var el = document.getElementById('pushBar');
+    var push = window.LetterPush;
+    if (!el || !push) return;
+    var st = push.status();
+    if (st === 'on' && !pushSynced) {
+      pushSynced = true;
+      setTimeout(function () { push.sync(api, token); }, 2000);
+    }
+    var html = '';
+    if (st === 'off') {
+      html = '<div class="push-bar"><div><b>新着の連絡をスマホに通知します</b><br>' +
+        '<span class="muted">1日1回、新しい連絡があった日にまとめてお知らせします。</span></div>' +
+        '<button id="pushOn">通知をオンにする</button></div>';
+    } else if (st === 'on') {
+      html = '<div class="push-line">通知：オン<button class="link" id="pushOff">オフにする</button></div>';
+    } else if (st === 'needs-install') {
+      html = '<div class="push-line muted">通知を受け取るには、ホーム画面に追加したアプリから開いてください。</div>';
+    } else if (st === 'denied') {
+      html = '<div class="push-line muted">通知がブロックされています。端末の設定で、このアプリの通知を許可してください。</div>';
+    }
+    if (message) html += '<div class="error">' + escapeHtml(message) + '</div>';
+    el.innerHTML = html;
+
+    var onBtn = document.getElementById('pushOn');
+    if (onBtn) onBtn.onclick = function () {
+      onBtn.disabled = true;
+      push.enable(api, token).then(function (res) {
+        if (res.ok) return renderPushBar(token);
+        var msg = res.reason === 'server' ? res.error
+          : (res.reason === 'default' || res.reason === 'denied') ? '通知が許可されませんでした。'
+          : '通知の設定に失敗しました。時間をおいて、もう一度お試しください。';
+        renderPushBar(token, msg);
+      });
+    };
+    var offBtn = document.getElementById('pushOff');
+    if (offBtn) offBtn.onclick = function () {
+      push.disable(api, token).then(function () { renderPushBar(token); });
+    };
   }
 
   // ---------- 教員 ----------
@@ -525,6 +599,9 @@
       else wrap.innerHTML = '<div class="card"><p class="error">通信できませんでした。</p></div>';
     });
   }
+
+  // アプリを開いている間に通知が届いたら、一覧を更新する
+  window.addEventListener('letter:push', function () { if (refreshCurrent) refreshCurrent(); });
 
   // アプリに戻ってきたとき、しばらく経っていれば最新に更新する
   document.addEventListener('visibilitychange', function () {
