@@ -3,7 +3,7 @@
 //  - index.html と config.js は、まず最新を取りに行く（通信できないとき・遅いときだけ保存済みを使う）
 //  - ほかのファイルは、版の番号（?v=…）ごとに保存する（index.html が指す版のものだけが使われる）
 // 画面を更新したときは、BUILD の値を index.html の ?v=… と同じ値に変える。
-var BUILD = '20261004r';
+var BUILD = '20261004s';
 var CACHE = 'letter-shell-' + BUILD;
 var V = '?v=' + BUILD;
 var SHELL = [
@@ -23,7 +23,8 @@ self.addEventListener('install', function (e) {
 self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+      // 同じ github.io には、ほかのアプリ（CareerPort など）の保存も同居するので、自分の名前（letter-shell-）のものだけ消す
+      return Promise.all(keys.filter(function (k) { return k.indexOf('letter-shell-') === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); }));
     })
   );
   self.clients.claim();
