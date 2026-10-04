@@ -4,7 +4,7 @@ var GAS_URL = 'ここにウェブアプリのURLを貼り付け';
 // ★ 教員の「Googleでログイン」を使う場合の OAuth クライアントID（Google Cloud の「認証情報」→ ウェブ アプリケーション。
 //   承認済みの JavaScript 生成元に、このアプリの URL（https://○○.github.io）を登録）。GAS 側の GOOGLE_CLIENT_ID と同じ値にします。
 //   空のままなら、Google ログインのボタンは出ません。
-var GOOGLE_CLIENT_ID = '';
+var GOOGLE_CLIENT_ID = '375245821863-r675i3dngn5i9pp30h5npc56s97qfue0.apps.googleusercontent.com';
 
 // ★ 欠席届など、既存のGoogleフォームへのボタン（保護者の画面の下に、「連絡・配布物」の隣へ並びます）。使わないなら [] のままで構いません。
 //   label  : ボタンの名前（短く。3文字〜5文字くらい）
