@@ -89,8 +89,15 @@
 
   function statsHtml(p, st) {
     var o = p.option;
-    var h = '<div class="group-header">既読</div><div class="group">' + progress(st.read, st.target) + nameList(st.unread, '未読の家庭') + '</div>';
-    var pending = st.unread.length, pendingLabel = '未読';
+    var parentsToo = st.audience !== '生徒';
+    var h = parentsToo
+      ? '<div class="group-header">既読' + (st.audience === '保護者・生徒' ? '（保護者）' : '') + '</div><div class="group">' + progress(st.read, st.target) + nameList(st.unread, '未読の家庭') + '</div>'
+      : '';
+    if (st.studentTarget !== undefined) {
+      h += '<div class="group-header"' + (parentsToo ? ' style="margin-top:20px"' : '') + '>既読（生徒）</div><div class="group">' + progress(st.studentRead, st.studentTarget) + nameList(st.studentUnread, '未読の生徒') + '</div>' +
+        '<div class="group-footer">生徒は CareerPort アプリで開くと既読になります。生徒向けの緊急連絡は、生徒の学校メールにも送られます。</div>';
+    }
+    var pending = parentsToo ? st.unread.length : 0, pendingLabel = '未読';
 
     if (st.survey) {
       var sv = st.survey;
@@ -175,6 +182,7 @@
     var C = {
       editing: p || null,
       sender: p ? (p.sender || '') : (S.defaultSender || ''),
+      audience: p ? (p.audience === '生徒' ? 'students' : (p.audience === '保護者・生徒' ? 'both' : 'parents')) : 'parents',
       category: p ? p.category : (S.categories[0] ? S.categories[0].name : 'お知らせ'),
       title: p ? p.title : '',
       body: p ? p.body : '',
@@ -265,6 +273,10 @@
       }).join('');
       return '<div class="section"><div class="group">' + field('発信元（どこから）', '<select data-f="sender">' + froms + '</select>') +
         field('カテゴリ（種類）', '<select data-f="category">' + cats + '</select>') +
+        field('対象者（誰に見せるか）', '<select data-f="audience">' +
+          [['parents', '保護者'], ['students', '生徒（CareerPort アプリ）'], ['both', '保護者と生徒']].map(function (o) {
+            return '<option value="' + o[0] + '"' + (o[0] === C.audience ? ' selected' : '') + '>' + o[1] + '</option>';
+          }).join('') + '</select>') +
         '<div class="field-row"><input class="left" type="text" data-f="title" maxlength="120" placeholder="タイトル" value="' + esc(C.title) + '"></div></div></div>' +
         '<div id="s-urgent"></div>';
     }
@@ -538,6 +550,7 @@
         return;
       }
       if (f === 'sender') C.sender = t.value;
+      if (f === 'audience') C.audience = t.value;
       if (f === 'category') { C.category = t.value; drawSec('urgent'); }
     });
     // ----- 送信 -----
@@ -549,7 +562,7 @@
       var bodyHtml = L.htmlToText(editor.innerHTML).trim() ? editor.innerHTML : '';
 
       if (!C.sender) return fail('発信元（学年・分掌など）を選んでください');
-      var payload = { token: L.token(), title: title, body: bodyHtml, category: C.category, sender: C.sender };
+      var payload = { token: L.token(), title: title, body: bodyHtml, category: C.category, sender: C.sender, audience: C.audience };
       if (C.tmode === 'ALL') { payload.targetType = 'ALL'; payload.targetValue = ''; }
       else if (C.tmode === 'STUDENT') {
         var ids = Object.keys(C.students);

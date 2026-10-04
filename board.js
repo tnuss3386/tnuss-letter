@@ -35,7 +35,8 @@
   function badge(name) { return '<span class="badge" style="--c:' + esc(catColor(name)) + '">' + esc(name) + '</span>'; }
   L.badge = badge;
   // 発信元（学年・分掌など）。カテゴリの色付きラベルとは別に、枠だけの控えめなラベルで添える
-  function fromTag(p) { return p.sender ? '<span class="from-tag">' + esc(p.sender) + '</span>' : ''; }
+  function audTag(p) { return p.audience === '生徒' || p.audience === '保護者・生徒' ? '<span class="from-tag">' + (p.audience === '生徒' ? '生徒向け' : '保護者・生徒') + '</span>' : ''; }
+  function fromTag(p) { return audTag(p) + (p.sender ? '<span class="from-tag">' + esc(p.sender) + '</span>' : ''); }
   L.fromTag = fromTag;
 
   var hayCache = {};
