@@ -1,0 +1,517 @@
+/* =====================================================================
+   TNUSS CareerPort Design System  v2.0（Bridge と同じ世界観）
+   - 紺(#0d2850)・生成り(#feede0)・セージ(#9ebba5)。ライト / ダーク / コントラスト強調 / 動きを減らす / 文字サイズ追従
+   - 階層を明確に、内容を主役に、色だけで伝えない。スマホ＝上のバー＋下のタブ / PC＝サイドバー＋一覧＋詳細
+   - 旧クラス名（header.app, .card, .btn-primary …）はそのまま使える。新部品は .cp-group / .cp-row / .cp-tabbar など
+   使い方: 各ページの <head> 末尾で <?!= include('cp-design') ?> を読み込む（ページ固有CSSより後）。
+   ===================================================================== */
+
+/* ───────── 1. Tokens（Bridge と同じ設計：ライト / ダーク / コントラスト強調） ───────── */
+:root {
+  color-scheme: light dark;
+  /* Brand */
+  --cp-navy: #0d2850;            /* 面の色（白文字を載せる） */
+  --cp-navy-600: #1c3d73;        /* hover */
+  --cp-navy-50: #eef2f8;         /* 薄い面 */
+  --cp-ink: #0d2850;             /* 文字としての紺（ダークでは明るい青になる） */
+  --cp-tint: #0d2850;            /* 主ボタンの面 */
+  --cp-on-tint: #ffffff;
+  --cp-tint-soft: rgba(13,40,80,.09);
+  --cp-tint-mid: rgba(13,40,80,.16);
+  --cp-gold: #c79a1f;
+  --cp-gold-50: #fbf3dc;
+  --cp-sage: #9ebba5;
+  --cp-sage-600: #4f8764;
+  --cp-sage-50: #eef5f0;
+  --cp-warm: #feede0;  --cp-warm-ink: #7a3410;
+
+  /* Neutrals */
+  --cp-bg: #f4f5f7;
+  --cp-surface: #ffffff;
+  --cp-border: #e0e3e8;
+  --cp-border-strong: #c9ced6;
+  --cp-text: #191919;
+  --cp-text-2: #565b63;
+  --cp-muted: #5f656d;
+  --cp-faint: #626870;
+  --cp-hover: #eceef2;
+  --cp-bar: rgba(255,255,255,.92);
+
+  /* Semantic */
+  --cp-accent: #1d5fd0;  --cp-accent-ink: #1d4ed8;
+  --cp-ok: #1b6b2e;     --cp-ok-bg: #e9f6ec;   --cp-ok-bd: #9bd4a8;   --cp-ok-fg: #14532d;
+  --cp-warn: #9a4500;   --cp-warn-bg: #fff4e0; --cp-warn-bd: #f0c987; --cp-warn-fg: #8a3f00;
+  --cp-danger: #c62828; --cp-danger-bg: #fdecec; --cp-danger-bd: #f1a9a9; --cp-danger-fg: #a11d1d;
+  --cp-info-bg: #eaf1fd; --cp-info-bd: #b5cdf5; --cp-info-fg: #1a4aa8;
+  --cp-other-fg: #6d28d9;
+  --cp-danger-solid: #c62828;  --cp-ok-solid: #1b6b2e;  --cp-warn-solid: #9a4500;   /* 白い文字を載せる面用 */
+
+  /* Activity categories（学習 / 探究 / 部活 / 委員会 / その他） */
+  --cp-learning: #38bdf8;  --cp-learning-bg: #eef8fe;
+  --cp-inquiry: #f0b429;   --cp-inquiry-bg: #fff8e6;
+  --cp-club: #7fae8c;      --cp-club-bg: #eef7f0;
+  --cp-committee: #4a7fd8; --cp-committee-bg: #edf3fd;
+  --cp-other: #a06ad8;     --cp-other-bg: #f6f0fd;
+
+  /* Grades A–E */
+  --cp-grade-a: #166534; --cp-grade-b: #15803d; --cp-grade-c: #fde68a; --cp-grade-d: #fcd34d; --cp-grade-e: #b91c1c;
+
+  /* Shape & depth */
+  --cp-r-sm: 6px;  --cp-r: 8px;  --cp-r-md: 12px;  --cp-r-lg: 16px;  --cp-r-pill: 999px;
+  --cp-shadow-sm: 0 1px 2px rgba(13,40,80,.06);
+  --cp-shadow: 0 1px 2px rgba(13,40,80,.06);
+  --cp-shadow-lg: 0 12px 40px rgba(13,40,80,.22);
+  --cp-skel-a: #eceef2; --cp-skel-b: #e0e3e8;
+  --cp-safe-top: env(safe-area-inset-top, 0px);
+  --cp-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Typography（外部フォントは使わない＝速い・オフラインでも同じ見た目） */
+  --cp-font: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+  --cp-font-display: var(--cp-font);
+
+  /* Spacing (4px grid) */
+  --cp-s1: 4px; --cp-s2: 8px; --cp-s3: 12px; --cp-s4: 16px; --cp-s5: 24px; --cp-s6: 32px;
+
+  /* 旧トークン名の互換（ページ側CSSが参照している名前を新トークンへ寄せる） */
+  --brand-navy: var(--cp-navy);
+  --navy: var(--cp-navy);
+  --brand-gold: var(--cp-gold);
+  --gold: var(--cp-gold);
+  --brand-sage: var(--cp-sage);
+  --slate-50: var(--cp-bg);
+  --bg: var(--cp-bg);
+  --card: var(--cp-surface);
+  --card-border: var(--cp-border);
+  --border: var(--cp-border);
+  --text-muted: var(--cp-muted);
+  --muted: var(--cp-muted);
+  --radius: var(--cp-r-md);
+  --chip-border: var(--cp-border);
+  --chip-bg: var(--cp-bg);
+  --text-main: var(--cp-text);
+  /* 各ページ固有の旧トークン名（ライト固定値だったもの）も、ダーク対応のトークンへ寄せる */
+  --pass-bg: var(--cp-ok-bg);   --pass-fg: var(--cp-ok-fg);   --pass-bd: var(--cp-ok-bd);
+  --ok-bg: var(--cp-ok-bg);     --ok-fg: var(--cp-ok-fg);     --ok-bd: var(--cp-ok-bd);
+  --warn-bg: var(--cp-warn-bg); --warn-fg: var(--cp-warn-fg); --warn-bd: var(--cp-warn-bd);
+  --fail-bg: var(--cp-danger-bg); --fail-fg: var(--cp-danger-fg); --fail-bd: var(--cp-danger-bd);
+  --learning-bg: var(--cp-learning-bg); --learning-border: var(--cp-learning);
+  --inquiry-bg: var(--cp-other-bg);     --inquiry-border: var(--cp-other);
+  --color-learning: var(--cp-learning); --color-learning-bg: var(--cp-learning-bg);
+  --color-inquiry: var(--cp-inquiry);   --color-inquiry-bg: var(--cp-inquiry-bg);
+  --committee-bg: var(--cp-committee-bg); --committee-fg: var(--cp-info-fg); --committee-bd: var(--cp-info-bd);
+  --club-bg: var(--cp-club-bg); --club-fg: var(--cp-ok-fg); --club-bd: var(--cp-ok-bd);
+  --navy-light: var(--cp-navy-600); --navy2: var(--cp-navy-600);
+  --ok: var(--cp-ok); --ng: var(--cp-danger); --warn: var(--cp-warn);
+  --success: var(--cp-ok); --alert-red: var(--cp-danger-solid); --notice-amber: var(--cp-warn); --brand-blue: var(--cp-accent-ink);
+  --slate-100: var(--cp-hover); --slate-500: var(--cp-muted); --card-bg: var(--cp-surface); --accent: var(--cp-accent);
+  --color-ut: var(--cp-info-bg); --border-ut: var(--cp-info-bd);
+  --color-pt: var(--cp-ok-bg);   --border-pt: var(--cp-ok-bd);
+  --color-pf: var(--cp-warn-bg); --border-pf: var(--cp-warn-bd);
+  --color-st: var(--cp-other-bg); --border-st: var(--cp-border);
+  --grade-A: var(--cp-grade-a); --grade-B: var(--cp-grade-b); --grade-C: var(--cp-grade-c); --grade-D: var(--cp-grade-d); --grade-E: var(--cp-grade-e);
+  --r: var(--cp-r-md);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cp-navy: #2f5597;  --cp-navy-600: #3b66b0;  --cp-navy-50: rgba(169,196,242,.12);
+    --cp-ink: #a9c4f2;
+    --cp-tint: #a9c4f2;  --cp-on-tint: #0b1d3a;
+    --cp-tint-soft: rgba(169,196,242,.14);  --cp-tint-mid: rgba(169,196,242,.24);
+    --cp-gold: #e0b94a;  --cp-gold-50: rgba(224,185,74,.16);
+    --cp-sage: #6f9478;  --cp-sage-600: #7fb08a;  --cp-sage-50: rgba(111,148,120,.18);
+    --cp-warm: #3a2b21;  --cp-warm-ink: #f2c9a8;
+    --cp-bg: #0e1115;  --cp-surface: #181c22;
+    --cp-border: #2b3038;  --cp-border-strong: #3c424c;
+    --cp-text: #ececec;  --cp-text-2: #a8aeb7;  --cp-muted: #9aa1ab;  --cp-faint: #8a919b;
+    --cp-hover: #20252c;  --cp-bar: rgba(24,28,34,.92);
+    --cp-accent: #8ab4ff;  --cp-accent-ink: #9bbcff;
+    --cp-ok: #5fd07c;     --cp-ok-bg: rgba(95,208,124,.14);   --cp-ok-bd: rgba(95,208,124,.4);   --cp-ok-fg: #8fe3a5;
+    --cp-warn: #ffb35c;   --cp-warn-bg: rgba(255,179,92,.14); --cp-warn-bd: rgba(255,179,92,.4); --cp-warn-fg: #ffc98a;
+    --cp-danger: #ff6b6b; --cp-danger-bg: rgba(255,107,107,.14); --cp-danger-bd: rgba(255,107,107,.4); --cp-danger-fg: #ff9a9a;
+    --cp-info-bg: rgba(138,180,255,.14); --cp-info-bd: rgba(138,180,255,.4); --cp-info-fg: #a9c4f2;
+    --cp-other-fg: #c4a3f5;
+    --cp-danger-solid: #d64545;  --cp-ok-solid: #2a8445;  --cp-warn-solid: #b2650f;
+    --cp-learning-bg: rgba(56,189,248,.12);  --cp-inquiry-bg: rgba(240,180,41,.12);
+    --cp-club-bg: rgba(127,174,140,.14);     --cp-committee-bg: rgba(74,127,216,.16);  --cp-other-bg: rgba(160,106,216,.14);
+    --cp-grade-c: #8a7a2c; --cp-grade-d: #9a7a1e;
+    --cp-shadow-sm: 0 0 0 1px rgba(255,255,255,.03);  --cp-shadow: 0 0 0 1px rgba(255,255,255,.03);
+    --cp-shadow-lg: 0 12px 40px rgba(0,0,0,.6);
+    --cp-skel-a: #20252c; --cp-skel-b: #2b3038;
+  }
+}
+/* 手動切り替え（アカウント画面の「表示」）: data-theme="dark" */
+:root[data-theme="dark"] {
+  --cp-navy: #2f5597;  --cp-navy-600: #3b66b0;  --cp-navy-50: rgba(169,196,242,.12);
+  --cp-ink: #a9c4f2;
+  --cp-tint: #a9c4f2;  --cp-on-tint: #0b1d3a;
+  --cp-tint-soft: rgba(169,196,242,.14);  --cp-tint-mid: rgba(169,196,242,.24);
+  --cp-gold: #e0b94a;  --cp-gold-50: rgba(224,185,74,.16);
+  --cp-sage: #6f9478;  --cp-sage-600: #7fb08a;  --cp-sage-50: rgba(111,148,120,.18);
+  --cp-warm: #3a2b21;  --cp-warm-ink: #f2c9a8;
+  --cp-bg: #0e1115;  --cp-surface: #181c22;
+  --cp-border: #2b3038;  --cp-border-strong: #3c424c;
+  --cp-text: #ececec;  --cp-text-2: #a8aeb7;  --cp-muted: #9aa1ab;  --cp-faint: #8a919b;
+  --cp-hover: #20252c;  --cp-bar: rgba(24,28,34,.92);
+  --cp-accent: #8ab4ff;  --cp-accent-ink: #9bbcff;
+  --cp-ok: #5fd07c;     --cp-ok-bg: rgba(95,208,124,.14);   --cp-ok-bd: rgba(95,208,124,.4);   --cp-ok-fg: #8fe3a5;
+  --cp-warn: #ffb35c;   --cp-warn-bg: rgba(255,179,92,.14); --cp-warn-bd: rgba(255,179,92,.4); --cp-warn-fg: #ffc98a;
+  --cp-danger: #ff6b6b; --cp-danger-bg: rgba(255,107,107,.14); --cp-danger-bd: rgba(255,107,107,.4); --cp-danger-fg: #ff9a9a;
+  --cp-info-bg: rgba(138,180,255,.14); --cp-info-bd: rgba(138,180,255,.4); --cp-info-fg: #a9c4f2;
+  --cp-other-fg: #c4a3f5;
+  --cp-danger-solid: #d64545;  --cp-ok-solid: #2a8445;  --cp-warn-solid: #b2650f;
+  --cp-learning-bg: rgba(56,189,248,.12);  --cp-inquiry-bg: rgba(240,180,41,.12);
+  --cp-club-bg: rgba(127,174,140,.14);     --cp-committee-bg: rgba(74,127,216,.16);  --cp-other-bg: rgba(160,106,216,.14);
+  --cp-grade-c: #8a7a2c; --cp-grade-d: #9a7a1e;
+  --cp-shadow-sm: 0 0 0 1px rgba(255,255,255,.03);  --cp-shadow: 0 0 0 1px rgba(255,255,255,.03);
+  --cp-shadow-lg: 0 12px 40px rgba(0,0,0,.6);
+  --cp-skel-a: #20252c; --cp-skel-b: #2b3038;
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+/* 「コントラストを上げる」設定のとき */
+@media (prefers-contrast: more) {
+  :root { --cp-text-2: #2f343b; --cp-muted: #3d434b; --cp-border: #8b9097; --cp-border-strong: #6b7078; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cp-text-2: #d4d8de; --cp-muted: #c2c8d0; --cp-border: #8b929d; --cp-border-strong: #a0a7b2; } }
+}
+
+/* ───────── 2. Base ───────── */
+* { -webkit-tap-highlight-color: transparent; }
+html { font-size: 14px; -webkit-text-size-adjust: 100%; background: var(--cp-bg); }
+@supports (-webkit-touch-callout: none) {
+  html { font: -apple-system-body; }   /* iPhone の「文字サイズ」設定に従う */
+}
+body {
+  font-family: var(--cp-font);
+  color: var(--cp-text);
+  background: var(--cp-bg) !important;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--cp-accent-ink); }
+h1, h2, h3 { color: var(--cp-ink); }
+.cp-display { font-family: var(--cp-font-display); }
+.meta, .muted { color: var(--cp-muted); }
+.meta { font-size: 11px; }
+/* アイコン: <span class="material-symbols-rounded">name</span> を、cp-icons が <svg> に置き換える（フォントは読み込まない） */
+.material-symbols-rounded {
+  display: inline-block; width: 1em; height: 1em; font-size: 18px; line-height: 1; vertical-align: middle;
+  font-style: normal; overflow: hidden; color: inherit; flex: none;
+}
+.material-symbols-rounded:not([data-mi]) { color: transparent; }          /* 置き換え前に名前の文字が一瞬見えるのを防ぐ */
+.material-symbols-rounded > svg { width: 1em; height: 1em; fill: currentColor; display: block; }
+:focus-visible { outline: 3px solid var(--cp-tint-mid); outline-offset: 1px; border-radius: 6px; }
+button:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--cp-ink); outline-offset: 2px; }
+/* hidden 属性は、display を指定した他のルール（flex/grid 等）に負けないようにする */
+[hidden] { display: none !important; }
+.cp-sr, .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+/* ───────── 3. Layout ───────── */
+.container, .container-max { max-width: 1080px; margin-inline: auto; padding: var(--cp-s3); width: 100%; box-sizing: border-box; }
+/* グリッドの子が中身の幅に引きずられて横にはみ出すのを防ぐ（minmax(0,1fr) が定石） */
+.container[style*="grid"], main.container { grid-template-columns: minmax(0, 1fr); }
+.container > *, .tab-content { min-width: 0; }
+img, svg, canvas, video { max-width: 100%; }
+iframe { max-width: 100%; }
+
+/* ───────── 4. Header（全ページ共通 = Bridge の上のバー） ───────── */
+header.app, .cp-header {
+  padding-top: var(--cp-safe-top);
+  position: sticky; top: 0; z-index: 100;
+  background: var(--cp-bar);
+  -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--cp-border);
+  box-shadow: none;
+  margin: 0;
+}
+header.app .header-inner, .cp-header .header-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--cp-s3);
+  max-width: 1080px; margin: 0 auto; padding: 8px var(--cp-s3); min-height: 56px; box-sizing: border-box;
+}
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; }
+.brand .logo { width: 32px; height: 32px; flex-shrink: 0; }
+.brand-title { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.brand-title strong { font-size: 1.2rem; font-weight: 800; letter-spacing: .2px; color: var(--cp-ink); white-space: nowrap; }
+.brand-title small { font-size: 11px; color: var(--cp-muted); font-weight: 600; white-space: nowrap; }
+.user-meta { font-size: 12px; color: var(--cp-text-2); display: flex; align-items: center; gap: var(--cp-s3); flex-wrap: wrap; justify-content: flex-end; }
+
+/* ───────── 5. Tabs（PC: 下線つきのタブ列） ───────── */
+.tab-navigation, .cp-tabs {
+  display: flex; gap: 2px; padding: 0 var(--cp-s3);
+  background: var(--cp-bar);
+  -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--cp-border);
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  max-width: none; width: 100%; margin: 0; box-sizing: border-box;
+  position: sticky; top: 57px; z-index: 99;
+}
+.tab-navigation::-webkit-scrollbar, .cp-tabs::-webkit-scrollbar { display: none; }
+.tab-btn {
+  flex: 0 0 auto; white-space: nowrap;
+  background: transparent !important; color: var(--cp-text-2) !important;
+  border: 0 !important; border-bottom: 3px solid transparent !important; border-radius: 0 !important;
+  padding: 11px 14px 8px !important; font-size: 13px !important; font-weight: 700 !important;
+  font-family: var(--cp-font) !important; cursor: pointer; transition: color .15s, background .15s;
+  margin: 0 !important; box-shadow: none !important; width: auto !important; min-width: 0 !important; max-width: none !important;
+}
+.tab-btn:hover { background: var(--cp-tint-soft) !important; color: var(--cp-ink) !important; transform: none !important; }
+.tab-btn.active, .tab-btn[aria-selected="true"] { background: transparent !important; color: var(--cp-ink) !important; border-bottom-color: var(--cp-ink) !important; }
+@media (min-width: 900px) {
+  .tab-navigation, .cp-tabs { justify-content: center; flex-wrap: wrap; overflow: visible; }
+}
+
+/* ───────── 6. Card / Section（面は影ではなく、線とやわらかい面で区切る） ───────── */
+.card, .cp-card {
+  background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: var(--cp-r-md);
+  padding: var(--cp-s4); box-shadow: var(--cp-shadow-sm); box-sizing: border-box;
+}
+.card > header, .cp-card-title { color: var(--cp-ink); font-weight: 700; }
+.list { display: grid; gap: 8px; }
+.list-item { border: 1px solid var(--cp-border); border-radius: 10px; padding: 12px; background: var(--cp-surface); }
+.fieldset { border: 1px dashed var(--cp-border-strong); border-radius: 10px; padding: 12px; }
+.edit-box { background: var(--cp-bg); border: 1px dashed var(--cp-border-strong); border-radius: 10px; padding: 12px; margin-top: 8px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+.pager { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+
+/* カテゴリ色の記録カード（左ライン＋淡い背景） */
+.log { border-left: 5px solid var(--cp-border-strong); }
+.log.learning,  .cp-cat-learning  { background: var(--cp-learning-bg) !important;  border-left-color: var(--cp-learning) !important; }
+.log.inquiry,   .cp-cat-inquiry   { background: var(--cp-inquiry-bg) !important;   border-left-color: var(--cp-inquiry) !important; }
+.log.category-club,      .cp-cat-club      { background: var(--cp-club-bg) !important;      border-left: 5px solid var(--cp-club) !important; }
+.log.category-committee, .cp-cat-committee { background: var(--cp-committee-bg) !important; border-left: 5px solid var(--cp-committee) !important; }
+.log.category-other,     .cp-cat-other     { background: var(--cp-other-bg) !important;     border-left: 5px solid var(--cp-other) !important; }
+
+/* ───────── 7. Buttons ───────── */
+/* 主ボタン＝紺（ダークでは明るい青 + 濃い文字）/ 副ボタン＝面 + 線 / 危険＝赤 / ピル型の小ボタン */
+.btn-primary, .btn-save, .cp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 0 18px; border-radius: var(--cp-r) !important; border: 1px solid var(--cp-tint) !important;
+  background: var(--cp-tint) !important; color: var(--cp-on-tint) !important;
+  font-family: var(--cp-font); font-size: 13px; font-weight: 700; letter-spacing: .2px; line-height: 1;
+  cursor: pointer; width: auto; box-shadow: none; transition: filter .15s, transform .1s;
+  text-decoration: none;
+}
+.btn-primary:hover, .btn-save:hover, .cp-btn:hover:not(:disabled) { filter: brightness(1.12); }
+.btn-primary:active, .btn-save:active { transform: translateY(1px); }
+.btn-primary:disabled, .btn-save:disabled, .cp-btn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+.btn-primary .material-symbols-rounded, .btn-save .material-symbols-rounded { color: var(--cp-on-tint) !important; }
+
+.btn-secondary, .btn-outline, .cp-btn-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 36px; padding: 0 16px; border-radius: var(--cp-r) !important;
+  background: var(--cp-surface) !important; color: var(--cp-text) !important; border: 1px solid var(--cp-border-strong) !important;
+  font-family: var(--cp-font); font-size: 13px; font-weight: 600; cursor: pointer; width: auto; box-shadow: none; text-decoration: none;
+}
+.btn-secondary:hover, .btn-outline:hover, .cp-btn-secondary:hover { background: var(--cp-hover) !important; }
+
+.btn-danger, .cp-btn-danger { background: var(--cp-danger-solid) !important; border-color: var(--cp-danger-solid) !important; color: #fff !important; }
+.btn-danger:hover { filter: brightness(.92); }
+
+.icon-btn, .btn-sm {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 30px; padding: 0 12px; border-radius: var(--cp-r-pill) !important; margin: 0;
+  background: var(--cp-surface) !important; color: var(--cp-text) !important; border: 1px solid var(--cp-border) !important;
+  font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; width: auto; box-shadow: none; font-family: var(--cp-font);
+}
+.icon-btn:hover, .btn-sm:hover { background: var(--cp-hover) !important; }
+.icon-btn.btn-save, .icon-btn.btn-primary, .btn-sm.btn-save, .btn-sm.btn-primary { background: var(--cp-tint) !important; color: var(--cp-on-tint) !important; border-color: var(--cp-tint) !important; }
+.icon-btn.btn-save:hover, .icon-btn.btn-primary:hover { filter: brightness(1.12); background: var(--cp-tint) !important; }
+.icon-btn.danger { color: var(--cp-danger) !important; border-color: var(--cp-danger-bd) !important; }
+.icon-btn.danger .material-symbols-rounded { color: var(--cp-danger) !important; }
+.icon-btn .material-symbols-rounded { color: inherit; }
+
+/* ───────── 8. Chips / Badges / Pills ───────── */
+.badge, .chip, .pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px;
+  border: 1px solid var(--cp-border); border-radius: var(--cp-r-pill);
+  font-size: 11px; font-weight: 600; background: var(--cp-surface); color: var(--cp-text-2); white-space: nowrap;
+}
+.pill.selectable { cursor: pointer; }
+.pill.selectable.selected { background: var(--cp-gold-50); border-color: var(--cp-gold); color: var(--cp-ink); }
+.chip.pass { background: var(--cp-ok-bg); border-color: var(--cp-ok-bd); color: var(--cp-ok-fg); }
+.chip.fail { background: var(--cp-danger-bg); border-color: var(--cp-danger-bd); color: var(--cp-danger-fg); }
+.chip.grade-A { color: #fff; background: var(--cp-grade-a); border-color: var(--cp-grade-a); }
+.chip.grade-B { color: #fff; background: var(--cp-grade-b); border-color: var(--cp-grade-b); }
+.chip.grade-C { color: #111827; background: var(--cp-grade-c); border-color: #d9a21b; }
+.chip.grade-D { color: #111827; background: var(--cp-grade-d); border-color: #d9a21b; }
+.chip.grade-E { color: #fff; background: var(--cp-grade-e); border-color: var(--cp-grade-e); }
+:root[data-theme="dark"] .chip.grade-C, :root[data-theme="dark"] .chip.grade-D { color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip.grade-C, :root:not([data-theme="light"]) .chip.grade-D { color: #fff; } }
+.cp-status-ok   { background: var(--cp-ok-bg);     color: var(--cp-ok-fg);     border-color: var(--cp-ok-bd); }
+.cp-status-warn { background: var(--cp-warn-bg);   color: var(--cp-warn-fg);   border-color: var(--cp-warn-bd); }
+.cp-status-ng   { background: var(--cp-danger-bg); color: var(--cp-danger-fg); border-color: var(--cp-danger-bd); }
+.cp-status-info { background: var(--cp-info-bg);   color: var(--cp-info-fg);   border-color: var(--cp-info-bd); }
+
+.progress { height: 8px; background: var(--cp-hover); border-radius: var(--cp-r-pill); overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--cp-sage-600); }
+
+/* ───────── 9. Forms ───────── */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea {
+  font-family: var(--cp-font); font-size: 14px; color: var(--cp-text);
+  background: var(--cp-surface); border: 1px solid var(--cp-border-strong); border-radius: var(--cp-r);
+  padding: 8px 10px; box-sizing: border-box; box-shadow: none;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cp-ink); box-shadow: 0 0 0 3px var(--cp-tint-mid); }
+label { font-size: 12px; font-weight: 700; color: var(--cp-text-2); }
+::placeholder { color: var(--cp-faint); }
+input[type=checkbox], input[type=radio], input[type=range] { accent-color: var(--cp-navy); }
+
+/* ───────── 10. Tables ───────── */
+.cp-table, .status-table, .admin-table, .dash-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.cp-table th, .status-table th, .admin-table th, .dash-table th {
+  background: var(--cp-navy-50); color: var(--cp-ink); font-weight: 700; text-align: left;
+  padding: 8px; border-bottom: 1px solid var(--cp-border);
+}
+.cp-table td, .status-table td, .admin-table td, .dash-table td { padding: 8px; border-bottom: 1px solid var(--cp-hover); }
+.cp-table tbody tr:hover, .status-table tbody tr:hover, .admin-table tbody tr:hover, .dash-table tbody tr:hover { background: var(--cp-hover); }
+
+/* ───────── 11. Drawer / Modal / Toast ───────── */
+.cp-drawer, #sidebar, .side-panel { background: var(--cp-surface); color: var(--cp-text); box-shadow: var(--cp-shadow-lg); }
+.cp-backdrop, #sb-backdrop { background: rgba(8,14,26,.45); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+
+/* ───────── 12. States ───────── */
+.loading { opacity: .6; pointer-events: none; }
+.skeleton { background: linear-gradient(90deg, var(--cp-skel-a) 25%, var(--cp-skel-b) 50%, var(--cp-skel-a) 75%); background-size: 200% 100%; animation: cp-sk 1.4s infinite; border-radius: var(--cp-r); }
+@keyframes cp-sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.ring { width: 34px; height: 34px; border: 3px solid var(--cp-border); border-top-color: var(--cp-ink); border-radius: 50%; animation: cp-spin .8s linear infinite; }
+@keyframes cp-spin { to { transform: rotate(360deg); } }
+.cp-empty { text-align: center; color: var(--cp-muted); padding: 32px 16px; }
+
+/* ───────── 13. Auth / Login card ───────── */
+.cp-auth-card {
+  background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: var(--cp-r-lg); padding: 32px 28px;
+  width: 92%; max-width: 400px; box-shadow: var(--cp-shadow-lg); text-align: center; box-sizing: border-box;
+}
+
+/* ───────── 14. Mobile（スマホ最適化 — タッチ操作前提） ───────── */
+@media (max-width: 720px) {
+  html { font-size: 15px; }
+  .container, .container-max { padding: 10px; }
+  header.app .header-inner, .cp-header .header-inner { padding: 6px 12px; flex-wrap: wrap; }
+  .brand .logo { width: 30px; height: 30px; }
+  .brand-title strong { font-size: 1.1rem; }
+  .brand-title small { display: none; }
+  .user-meta { font-size: 11px; min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+  header.app .header-inner > div { min-width: 0; }
+  header.app .header-inner > div[style*="display:flex"] { flex-wrap: wrap; }
+  .tab-navigation, .cp-tabs { top: 50px; padding: 0 6px; }
+  .tab-btn { padding: 10px 12px 7px !important; font-size: 12.5px !important; }
+  .card, .cp-card { padding: 12px; border-radius: 12px; }
+  /* iOS は 16px 未満の入力で自動ズームする */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea { font-size: 16px; padding: 10px 12px; }
+  .btn-primary, .btn-save, .btn-secondary, .btn-outline, .cp-btn, .cp-btn-secondary { min-height: 44px; font-size: 14px; }
+  .icon-btn, .btn-sm { height: 36px; padding: 0 14px; }
+}
+
+/* スマホ専用ページ（mobile-student）: Bridge と同じ下のタブ（アイコン + 短いラベル） */
+.cp-bottom-nav, .bottom-nav, .cp-tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+  display: flex; background: var(--cp-bar);
+  -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+  border-top: 1px solid var(--cp-border);
+  padding-bottom: var(--cp-safe-bottom);
+}
+.nav-btn, .cp-tabbar > button, .cp-tabbar > a {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 56px; border: none; background: transparent; color: var(--cp-text-2); font-size: 10.5px; font-weight: 700; cursor: pointer; text-decoration: none; position: relative;
+}
+.nav-btn .material-symbols-rounded, .cp-tabbar .material-symbols-rounded { font-size: 24px; }
+.nav-btn.active, .cp-tabbar .active { color: var(--cp-ink); }
+.nav-btn.active::before, .cp-tabbar .active::before { content: ""; position: absolute; top: 6px; width: 56px; height: 30px; border-radius: 15px; background: var(--cp-tint-soft); z-index: 0; }
+.nav-btn > *, .cp-tabbar > * > * { position: relative; z-index: 1; }
+.nav-btn.active .material-symbols-rounded { color: var(--cp-ink); }
+
+/* ───────── 15. ツールバー型ヘッダー（面談 / 分析: #top-bar） ───────── */
+#top-bar {
+  background: var(--cp-bar) !important; color: var(--cp-text);
+  -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--cp-border); box-shadow: none !important;
+  padding: 8px 14px !important; gap: 10px;
+}
+#top-bar .brand { margin-right: 10px; }
+#top-bar .brand svg { width: 32px; height: 32px; }
+#top-bar .brand svg rect { fill: var(--cp-navy); }               /* 暗背景用の半透明塗りを置き換え */
+#top-bar .brand strong { color: var(--cp-ink) !important; font-size: 1.1rem !important; font-weight: 800; letter-spacing: .2px; }
+#top-bar .brand small { color: var(--cp-muted) !important; font-size: 11px !important; font-weight: 600; }
+#top-bar select {
+  height: 36px !important; background: var(--cp-surface) !important; color: var(--cp-text) !important;
+  border: 1px solid var(--cp-border-strong) !important; border-radius: var(--cp-r) !important; font-size: 13px !important; font-weight: 600;
+}
+#top-bar select option { background: var(--cp-surface); color: var(--cp-text); }
+#top-bar .bar-sep { background: var(--cp-border) !important; }
+#sel-data-year { background: var(--cp-gold-50) !important; border-color: var(--cp-gold) !important; color: var(--cp-ink) !important; }
+#btn-print, #btn-run {
+  height: 36px !important; padding: 0 16px !important; border-radius: var(--cp-r) !important;
+  background: var(--cp-tint) !important; color: var(--cp-on-tint) !important; border: 1px solid var(--cp-tint) !important;
+  font-size: 13px !important; font-weight: 700 !important; box-shadow: none !important;
+}
+#btn-print:hover, #btn-run:hover { filter: brightness(1.12); }
+@media (max-width: 720px) {
+  #top-bar { padding: 8px 10px !important; }
+  #top-bar select { flex: 1 1 42%; min-width: 0 !important; max-width: none !important; height: 40px !important; font-size: 16px !important; }
+  #top-bar .right-group { margin-left: 0; width: 100%; }
+  #top-bar .right-group select { flex: 1; }
+}
+
+/* ───────── 16. お知らせバー ───────── */
+.cp-notice {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--cp-r-md);
+  border: 1px solid var(--cp-info-bd); background: var(--cp-info-bg); color: var(--cp-info-fg); font-size: 13px;
+}
+.cp-notice.warn { border-color: var(--cp-warn-bd); background: var(--cp-warn-bg); color: var(--cp-warn-fg); }
+.cp-notice.ok   { border-color: var(--cp-ok-bd);   background: var(--cp-ok-bg);   color: var(--cp-ok-fg); }
+.cp-notice .cp-notice-body { flex: 1; min-width: 0; }
+.cp-notice .cp-notice-body small { display: block; opacity: .85; margin-top: 2px; }
+.cp-notice a.cp-notice-act { flex-shrink: 0; font-weight: 700; white-space: nowrap; text-decoration: none; padding: 4px 12px; border-radius: var(--cp-r-pill); background: var(--cp-surface); border: 1px solid currentColor; color: inherit; }
+
+/* ───────── 17. v2 の新部品（Bridge と同じ「グループ化された一覧」） ───────── */
+/* 使い方:  <div class="cp-group"><div class="cp-row">…</div><div class="cp-row">…</div></div> */
+.cp-group-title { margin: 18px 4px 6px; font-size: 12px; font-weight: 700; color: var(--cp-muted); letter-spacing: .4px; }
+.cp-group { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: var(--cp-r-md); overflow: hidden; }
+.cp-row {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-height: 48px; width: 100%; box-sizing: border-box;
+  color: var(--cp-text); text-decoration: none; background: transparent; border: 0; text-align: left; cursor: default; font: inherit;
+}
+.cp-row + .cp-row { border-top: 1px solid var(--cp-border); }
+a.cp-row, button.cp-row, .cp-row.tappable { cursor: pointer; }
+a.cp-row:hover, button.cp-row:hover, .cp-row.tappable:hover { background: var(--cp-hover); }
+.cp-row .cp-row-ic { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; background: var(--cp-tint-soft); color: var(--cp-ink); flex: none; font-size: 20px; }
+.cp-row .cp-row-main { flex: 1; min-width: 0; }
+.cp-row .cp-row-main > span { display: block; }
+.cp-row .cp-row-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.cp-row .cp-row-sub { font-size: 12px; color: var(--cp-text-2); overflow: hidden; text-overflow: ellipsis; }
+.cp-row .cp-row-end { color: var(--cp-muted); font-size: 13px; display: flex; align-items: center; gap: 4px; flex: none; }
+.cp-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--cp-hover); gap: 2px; }
+.cp-seg > button { border: 0; background: transparent; color: var(--cp-text-2); padding: 6px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; min-height: 32px; }
+.cp-seg > button[aria-pressed="true"], .cp-seg > button.active { background: var(--cp-surface); color: var(--cp-ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.cp-banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--cp-r-md); background: var(--cp-warm); color: var(--cp-warm-ink); font-size: 13px; }
+/* PC: サイドバー + 一覧 + 詳細（先生向けの画面） */
+.cp-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+.cp-sidebar { background: var(--cp-surface); border-right: 1px solid var(--cp-border); padding: 12px 8px; position: sticky; top: 0; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+.cp-sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; color: var(--cp-text); text-decoration: none; font-weight: 600; font-size: 13px; }
+.cp-sb-item:hover { background: var(--cp-hover); }
+.cp-sb-item.active { background: var(--cp-tint-soft); color: var(--cp-ink); }
+@media (max-width: 900px) { .cp-shell { grid-template-columns: minmax(0, 1fr); } .cp-sidebar { display: none; } }
+
+/* 先生の画面（左サイドバーあり）は、本文の最大幅を外して、画面いっぱいにデータを広げる（cp-sidenav が body に cp-has-sidenav を付ける） */
+@media (min-width: 960px) {
+  body.cp-has-sidenav .container, body.cp-has-sidenav .container-max, body.cp-has-sidenav main.container { max-width: none; margin-inline: 0; }
+  body.cp-has-sidenav header.app .header-inner, body.cp-has-sidenav .cp-header .header-inner { max-width: none; }
+}
+
+/* ───────── 18. ダークモードの補正（画像・外部ウィジェット） ───────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) img:not([src$=".svg"]):not(.cp-keep-img) { filter: brightness(.9); }
+}
+:root[data-theme="dark"] img:not([src$=".svg"]):not(.cp-keep-img) { filter: brightness(.9); }
+
+/* ───────── 19. 印刷は常にライト配色 ───────── */
+@media print {
+  :root { --cp-bg: #fff; --cp-surface: #fff; --cp-text: #111; --cp-text-2: #333; --cp-muted: #444; --cp-border: #bbb; --cp-ink: #0d2850; --cp-hover: #f2f2f2; --cp-navy: #0d2850; }
+  header.app, .cp-header, .tab-navigation, .cp-tabs, .cp-bottom-nav, .bottom-nav, .cp-tabbar { position: static; box-shadow: none; }
+  body { background: #fff !important; }
+}
