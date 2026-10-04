@@ -244,6 +244,22 @@
   }
   L.wordmark = wordmark;
 
+  // ---------- 教員の Google ログイン（Google Identity Services） ----------
+  function hasGoogle() { return typeof GOOGLE_CLIENT_ID === 'string' && /\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID); }
+  function setupGoogleButton(onToken) {
+    function render() {
+      var box = document.getElementById('gsiBtn');
+      if (!box || !window.google || !google.accounts || !google.accounts.id) return;
+      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: function (r) { if (r && r.credential) onToken(r.credential); }, auto_select: false, ux_mode: 'popup' });
+      google.accounts.id.renderButton(box, { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill', locale: 'ja', width: Math.min(300, (box.parentNode.clientWidth || 300)) });
+    }
+    if (window.google && google.accounts && google.accounts.id) return render();
+    var s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.defer = true; s.onload = render;
+    s.onerror = function () { var b = document.getElementById('gsiBtn'); if (b) b.innerHTML = '<p class="meta">Google のログインを読み込めませんでした。通信を確認してください。</p>'; };
+    document.head.appendChild(s);
+  }
+
   function showLogin() {
     setChrome(false);
     $nav.innerHTML = '';
@@ -253,17 +269,27 @@
       '<h1>' + esc((typeof APP_TITLE !== 'undefined' && APP_TITLE) || '配布物・連絡事項') + '</h1>' +
       ((typeof APP_TAGLINE !== 'undefined' && APP_TAGLINE) ? '<p class="tagline">' + esc(APP_TAGLINE) + '</p>' : '') +
       ((typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) ? '<p class="sub">' + esc(SCHOOL_NAME) + '</p>' : '') +
-      '<p class="lead">発行されたIDとパスワードで<br>ログインしてください</p>' +
+      '<p class="lead">' + (hasGoogle() ? '保護者の方は、発行されたIDとパスワードで<br>ログインしてください' : '発行されたIDとパスワードで<br>ログインしてください') + '</p>' +
       '<div class="group"><div class="field"><label for="loginId">ID</label>' +
       '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID（学籍番号）"></div>' +
       '<div class="field" style="position:relative"><label for="loginPw">パスワード</label>' +
       '<input id="loginPw" type="password" autocomplete="current-password" placeholder="パスワード"></div></div>' +
       '<div class="error-text hidden" id="loginError" style="text-align:left;margin:0 4px 12px"></div>' +
       '<button class="btn" id="loginBtn">ログイン</button>' +
+      (hasGoogle() ? '<div class="login-or"><span>教員の方</span></div><div id="gsiBtn" class="gsi-wrap" aria-label="Google でログイン"></div>' : '') +
       '<p class="foot">IDやパスワードが分からない場合は、学校へお問い合わせください。</p>' +
       '</div>';
     var err = document.getElementById('loginError');
     function fail(msg) { err.textContent = msg; err.classList.remove('hidden'); }
+    function enter(res) {
+      L.store.clearCache(); L.store.remove(CHILD_KEY); L.store.set(TOKEN_KEY, res.token);
+      S.role = null; showSkeleton(); loadState(false);
+    }
+    if (hasGoogle()) setupGoogleButton(function (idToken) {
+      err.classList.add('hidden');
+      L.api('loginGoogle', { idToken: idToken }).then(function (res) { if (!res.ok) return fail(res.error); enter(res); })
+        .catch(function () { fail('通信できませんでした。電波の良い場所でお試しください。'); });
+    });
     document.getElementById('loginPw').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') document.getElementById('loginBtn').click();
     });

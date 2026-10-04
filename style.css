@@ -566,3 +566,8 @@ body.wide .page { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* 教員の Google ログイン */
+.login-or { display: flex; align-items: center; gap: 10px; margin: 22px 4px 12px; color: var(--label-3); font-size: .85rem; }
+.login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.gsi-wrap { display: flex; justify-content: center; min-height: 44px; }
