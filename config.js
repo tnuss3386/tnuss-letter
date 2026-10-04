@@ -13,7 +13,7 @@ var GOOGLE_CLIENT_ID = '375245821863-r675i3dngn5i9pp30h5npc56s97qfue0.apps.googl
 //   fields : 事前入力する項目の entry 番号（grade=学年, klass=クラス, student=生徒氏名, date=今日の日付）。不要な項目は省略可
 var FORM_LINKS = [
   {
-    label: '欠席届',
+    label: '欠席連絡',
     icon: 'absence',
     url: 'https://docs.google.com/forms/d/e/1FAIpQLSfG2_dWVsYVLcihmdxPDDNCu7SwDowfvHIqrJVFhAbIw3z25w/viewform',
     fields: { grade: 'entry.1172457325', klass: 'entry.907591013', student: 'entry.956742059', date: 'entry.2048978737' }
