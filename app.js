@@ -103,7 +103,14 @@
     }).then(function (state) {
       S.lastFetch = Date.now();
       setOffline(false);
-      if (state.role === 'guest') { clearSession(); return showLogin(); }
+      if (state.role === 'guest') {
+        var fresh = L.justLoggedIn; L.justLoggedIn = false;
+        clearSession(); showLogin();
+        // ログインは通ったのに、すぐ「未ログイン」に戻されたとき（サーバー側の設定の問題）は、黙って戻さず、理由を出す
+        if (fresh) { var er = document.getElementById('loginError'); if (er) { er.textContent = 'ログインはできましたが、ログイン状態の確認に失敗しました。管理者に、サーバー（Apps Script）の設定の確認を依頼してください。'; er.classList.remove('hidden'); } }
+        return;
+      }
+      L.justLoggedIn = false;
       var key = 'state:' + state.role;
       var prev = L.store.cacheGet(key);
       if (state.role === 'parent') state.cachedChild = state.current.id;
@@ -283,6 +290,7 @@
     function fail(msg) { err.textContent = msg; err.classList.remove('hidden'); }
     function enter(res) {
       L.store.clearCache(); L.store.remove(CHILD_KEY); L.store.set(TOKEN_KEY, res.token);
+      L.justLoggedIn = true;
       S.role = null; showSkeleton(); loadState(false);
     }
     if (hasGoogle()) setupGoogleButton(function (idToken) {
@@ -306,6 +314,7 @@
         L.store.clearCache();
         L.store.remove(CHILD_KEY);
         L.store.set(TOKEN_KEY, res.token);
+        L.justLoggedIn = true;
         S.role = null;
         showSkeleton();
         loadState(false);
