@@ -77,10 +77,17 @@
     loadState(!!cached);
   }
 
-  function showSkeleton() {
+  var slowTimer = 0;
+  function showSkeleton(msg) {
     setChrome(false);
     $nav.innerHTML = '';
-    $view.innerHTML = '<div class="skeleton" style="margin-top:56px"></div><div class="skeleton"></div><div class="skeleton"></div>';
+    $view.innerHTML = '<div class="skeleton" style="margin-top:56px"></div><div class="skeleton"></div><div class="skeleton"></div>' +
+      (msg ? '<p class="meta" id="slowHint" style="text-align:center;margin-top:16px" role="status">' + esc(msg) + '</p>' : '');
+    clearTimeout(slowTimer);
+    if (msg) slowTimer = setTimeout(function () {   // 長く待たされたときは、止まっているように見えないよう、案内と再読み込みを出す
+      var h = document.getElementById('slowHint');
+      if (h) h.innerHTML = '時間がかかっています。しばらく待っても表示されないときは、<button class="btn" style="margin-top:10px" onclick="location.reload()">再読み込み</button>';
+    }, 15000);
   }
 
   function showMessage(title, text, retry) {
@@ -91,16 +98,17 @@
     L.acts.retry = retry || function () {};
   }
 
-  function loadState(hadCache) {
+  function loadState(hadCache, pre) {
     var token = L.token();
     var child = S.role === 'teacher' ? undefined : (L.store.get(CHILD_KEY) || undefined);
-    return L.api('getState', { token: token, studentId: child }).then(function (state) {
+    // pre: ログインの返事に載っていた最初のデータ（あれば、通信せずにそれを使う）
+    return (pre ? Promise.resolve(pre) : L.api('getState', { token: token, studentId: child }).then(function (state) {
       if (state.role === 'guest' && child) {
         L.store.remove(CHILD_KEY);
         return L.api('getState', { token: token });
       }
       return state;
-    }).then(function (state) {
+    })).then(function (state) {
       S.lastFetch = Date.now();
       setOffline(false);
       if (state.role === 'guest') {
@@ -291,7 +299,7 @@
     function enter(res) {
       L.store.clearCache(); L.store.remove(CHILD_KEY); L.store.set(TOKEN_KEY, res.token);
       L.justLoggedIn = true;
-      S.role = null; showSkeleton(); loadState(false);
+      S.role = null; showSkeleton('ログインしています…（初回は少し時間がかかります）'); loadState(false, res.state && res.state.role ? res.state : null);
     }
     if (hasGoogle()) setupGoogleButton(function (idToken) {
       err.classList.add('hidden');
@@ -316,8 +324,8 @@
         L.store.set(TOKEN_KEY, res.token);
         L.justLoggedIn = true;
         S.role = null;
-        showSkeleton();
-        loadState(false);
+        showSkeleton('ログインしています…（初回は少し時間がかかります）');
+        loadState(false, res.state && res.state.role ? res.state : null);
       }).catch(function () {
         btn.disabled = false;
         fail('通信できませんでした。電波の良い場所でお試しください。');
