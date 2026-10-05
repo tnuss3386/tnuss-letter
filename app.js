@@ -98,11 +98,11 @@
     L.acts.retry = retry || function () {};
   }
 
-  function loadState(hadCache, pre) {
+  function loadState(hadCache, pre, switching) {
     var token = L.token();
     var child = S.role === 'teacher' ? undefined : (L.store.get(CHILD_KEY) || undefined);
     // pre: ログインの返事に載っていた最初のデータ（あれば、通信せずにそれを使う）
-    return (pre ? Promise.resolve(pre) : L.api('getState', { token: token, studentId: child }).then(function (state) {
+    return (pre ? Promise.resolve(pre) : L.api('getState', { token: token, studentId: child, switched: switching || undefined }).then(function (state) {
       if (state.role === 'guest' && child) {
         L.store.remove(CHILD_KEY);
         return L.api('getState', { token: token });
@@ -740,7 +740,7 @@
     S.ivSel = {};
     S.filter = { cat: 'ALL', unread: false, scheduled: false, q: '' };
     showSkeleton();
-    loadState(false);
+    loadState(false, null, true);
   }
 
   L.acts.account = function () {
