@@ -577,4 +577,4 @@ body.wide .page { animation: none; }
 
 
 /* ログイン画面の案内文: 広い画面では改行せず1行に（スマホは今まで通り） */
-@media (min-width: 600px) { .login p.lead br.sp { display: none; } .login p.lead { white-space: nowrap; } }
+@media (min-width: 600px) { .login p.lead br.sp { display: none; } .login p.lead, .login p.foot { white-space: nowrap; } }
