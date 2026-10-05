@@ -275,7 +275,15 @@
     document.head.appendChild(s);
   }
 
+  // 教員用のログイン画面は、アドレスの末尾に「#teacher」を付けたとき（例: https://○○.github.io/○○/#teacher）だけ出す
+  function isTeacherLogin() { return hasGoogle() && /^#teacher$/.test(location.hash || ''); }
+
+  window.addEventListener('hashchange', function () {   // ログイン画面のまま「#teacher」を付け外ししたときは、画面を切り替える
+    if (!L.token() && document.querySelector('.page.login')) showLogin();
+  });
+
   function showLogin() {
+    var tl = isTeacherLogin();
     setChrome(false);
     $nav.innerHTML = '';
     $view.innerHTML =
@@ -284,14 +292,17 @@
       '<h1>' + esc((typeof APP_TITLE !== 'undefined' && APP_TITLE) || '配布物・連絡事項') + '</h1>' +
       ((typeof APP_TAGLINE !== 'undefined' && APP_TAGLINE) ? '<p class="tagline">' + esc(APP_TAGLINE) + '</p>' : '') +
       ((typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) ? '<p class="sub">' + esc(SCHOOL_NAME) + '</p>' : '') +
-      '<p class="lead">' + (hasGoogle() ? '保護者の方は、発行されたIDとパスワードで<br>ログインしてください' : '発行されたIDとパスワードで<br>ログインしてください') + '</p>' +
-      '<div class="group"><div class="field"><label for="loginId">ID</label>' +
-      '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID（学籍番号）"></div>' +
-      '<div class="field" style="position:relative"><label for="loginPw">パスワード</label>' +
-      '<input id="loginPw" type="password" autocomplete="current-password" placeholder="パスワード"></div></div>' +
-      '<div class="error-text hidden" id="loginError" style="text-align:left;margin:0 4px 12px"></div>' +
-      '<button class="btn" id="loginBtn">ログイン</button>' +
-      (hasGoogle() ? '<div class="login-or"><span>教員の方</span></div><div id="gsiBtn" class="gsi-wrap" aria-label="Google でログイン"></div>' : '') +
+      (tl
+        ? '<p class="lead">教員の方は、学校の Google アカウントで<br>ログインしてください</p>' +
+          '<div id="gsiBtn" class="gsi-wrap" aria-label="Google でログイン"></div>' +
+          '<div class="error-text hidden" id="loginError" style="text-align:left;margin:12px 4px 0"></div>'
+        : '<p class="lead">発行されたIDとパスワードで<br>ログインしてください</p>' +
+          '<div class="group"><div class="field"><label for="loginId">ID</label>' +
+          '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID（学籍番号）"></div>' +
+          '<div class="field" style="position:relative"><label for="loginPw">パスワード</label>' +
+          '<input id="loginPw" type="password" autocomplete="current-password" placeholder="パスワード"></div></div>' +
+          '<div class="error-text hidden" id="loginError" style="text-align:left;margin:0 4px 12px"></div>' +
+          '<button class="btn" id="loginBtn">ログイン</button>') +
       '<p class="foot">IDやパスワードが分からない場合は、学校へお問い合わせください。</p>' +
       '</div>';
     var err = document.getElementById('loginError');
@@ -301,11 +312,12 @@
       L.justLoggedIn = true;
       S.role = null; showSkeleton('ログインしています…（初回は少し時間がかかります）'); loadState(false, res.state && res.state.role ? res.state : null);
     }
-    if (hasGoogle()) setupGoogleButton(function (idToken) {
+    if (tl) setupGoogleButton(function (idToken) {
       err.classList.add('hidden');
       L.api('loginGoogle', { idToken: idToken }).then(function (res) { if (!res.ok) return fail(res.error); enter(res); })
         .catch(function () { fail('通信できませんでした。電波の良い場所でお試しください。'); });
     });
+    if (tl) return;
     document.getElementById('loginPw').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') document.getElementById('loginBtn').click();
     });
