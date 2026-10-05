@@ -323,6 +323,11 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .feed-stat-val { font-size: 18px; font-weight: 800; color: var(--cp-other-fg); }
 .feed-stat-lbl { font-size: 9px; color: var(--muted); font-weight: 600; }
 .feed-stat-div { width: 1px; height: 28px; background: rgba(124,58,237,.2); }
+/* ── スマホ版の整え（PC版と同じボタン・枠線・フォーカスの規則） ── */
+.h-btn { white-space: nowrap; font-size: 13px; padding-left: 4px; padding-right: 4px; min-width: 0; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--cp-navy); outline-offset: 2px; }
+input:not([type=checkbox], [type=radio], [type=range]), select, textarea { border-color: var(--cp-border-strong); }
+input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-shadow: 0 0 0 3px var(--cp-tint-soft); outline: none; }
 </style>
 <meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="cp-design.css">
@@ -599,6 +604,14 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
  </div>
 
  </div><!-- /tab-learning -->
+
+ <!-- ══ 連絡（ベルから開く。下のタブには出さない） ══ -->
+ <div id="tab-messages" class="tab-pane">
+ <div class="card">
+ <div class="card-title"><span class="material-symbols-rounded">notifications</span>連絡<span class="cp-tabbadge" id="msg-tab-badge" hidden></span></div>
+ <div id="msg-mount"></div>
+ </div>
+ </div>
 
  <!-- ══ TAB: 探究ログ ══ -->
  <div id="tab-inquiry" class="tab-pane">
@@ -1934,6 +1947,231 @@ function resetForm(prefix){
 init();
 </script>
 <meta charset="utf-8">
+<!-- TNUSS CareerPort 共通部品: 連絡の一覧（教員の「連絡」タブ／生徒の「連絡」タブで同じ見え方）
+     使い方: body 終了タグの直前で include('cp-msglist')。
+       var ml = cpMsgList.mount(要素, { onOpen: function (id, m) {}, onMarkAll: function () {}, showState: true });
+       ml.set(items, { problem: '', loading: false, note: '' });
+     items: { id, createdAt, senderName, category, title, body, read, priority, eventDate, eventEndDate, attachments[], notShown[], scheduled }
+     生徒のタブ: cpMsgList.bindStudent(要素, { badge: 件数を出す要素 }) と、cp-inbox が呼ぶ window.cpInboxTab を、ページ側で定義する。 -->
+<style>
+.cml-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.cml-chip { height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); font-size: 12px; font-weight: 700; cursor: pointer; }
+.cml-chip[aria-pressed=true] { background: var(--cp-navy); color: #fff; border-color: var(--cp-navy); }
+.cml-chip .n { margin-left: 4px; font-weight: 600; opacity: .8; }
+.cml-bar .cml-all { margin-left: auto; }
+.cml-list { display: grid; gap: 8px; }
+#cp-app .cml-bar button, .cml-bar button, .cml-more { width: auto; flex: 0 0 auto; }
+.cml-msg, .cml-msg * { text-align: left; }
+.cml-msg { display: block; width: 100%; box-sizing: border-box; }
+.cml-msg .cml-body { text-align: left; }
+.cml-msg { background: var(--cp-surface); border: 1px solid var(--cp-border); border-left: 4px solid var(--cp-border-strong); border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.cml-msg.unread { border-left-color: var(--cp-navy); }
+.cml-msg.important { border-left-color: var(--cp-gold); background: var(--cp-gold-50); }
+.cml-msg:focus-visible { outline: 2px solid var(--cp-navy); outline-offset: 1px; }
+.cml-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 11px; color: var(--cp-muted); }
+.cml-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cp-danger); flex: none; }
+.cml-imp { font-weight: 800; color: #8a6d0b; background: var(--cp-surface); border: 1px solid var(--cp-gold); border-radius: 999px; padding: 0 8px; font-size: 10px; }
+.cml-cat { font-size: 10px; font-weight: 700; padding: 0 8px; border-radius: 999px; background: var(--cp-hover); color: var(--cp-text-2); }
+.cml-state { margin-left: auto; }
+.cml-title { font-weight: 700; font-size: 14px; color: var(--cp-text); margin: 4px 0 2px; display: flex; align-items: center; gap: 6px; }
+.cml-msg:not(.unread) .cml-title { font-weight: 600; }
+.cml-title .chev { margin-left: auto; font-size: 18px; color: var(--cp-muted); transition: transform .15s; }
+.cml-msg.open .cml-title .chev { transform: rotate(180deg); }
+.cml-ev { font-size: 12px; font-weight: 700; color: var(--cp-ink); margin: 2px 0; }
+.cml-body { font-size: 13px; color: var(--cp-text-2); white-space: pre-wrap; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.cml-msg.open .cml-body { display: block; -webkit-line-clamp: unset; }
+.cml-extra { display: none; }
+.cml-msg.open .cml-extra { display: block; margin-top: 8px; }
+.cml-atts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cml-warn { font-size: 12px; color: var(--cp-warn-fg); background: var(--cp-warn-bg); border: 1px solid var(--cp-warn-bd); border-radius: 8px; padding: 6px 10px; margin-top: 6px; }
+.cml-more { margin: 10px auto 0; display: flex; }
+.cml-empty { text-align: center; color: var(--cp-muted); padding: 32px 12px; font-size: 13px; }
+.cml-foot { text-align: center; color: var(--cp-muted); font-size: 12px; margin-top: 10px; }
+.cml-mail { display: grid; grid-template-columns: minmax(250px, 340px) minmax(0, 1fr); border: 1px solid var(--cp-border); border-radius: 12px; overflow: hidden; background: var(--cp-surface); height: min(68vh, 620px); min-height: 360px; }
+.cml-mlist { overflow-y: auto; border-right: 1px solid var(--cp-border); background: var(--cp-bg); }
+.cml-row { display: block; width: 100%; text-align: left; border: 0 !important; border-bottom: 1px solid var(--cp-border) !important; border-radius: 0 !important; background: transparent !important; padding: 10px 14px 10px 22px !important; cursor: pointer; position: relative; height: auto !important; box-shadow: none !important; color: var(--cp-text) !important; font: inherit; min-width: 0 !important; }
+.cml-row:hover { background: var(--cp-hover) !important; }
+.cml-row[aria-selected="true"] { background: var(--cp-tint-soft) !important; box-shadow: inset 3px 0 0 var(--cp-navy) !important; }
+.cml-row .dot { position: absolute; left: 8px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: transparent; }
+.cml-row.unread .dot { background: var(--cp-danger); }
+.cml-row .r1 { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--cp-text-2); }
+.cml-row .r1 b { font-weight: 700; color: var(--cp-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.cml-row.unread .r1 b, .cml-row.unread .r2 { font-weight: 800; color: var(--cp-ink); }
+.cml-row .r1 span { flex: none; font-variant-numeric: tabular-nums; }
+.cml-row .r2 { font-size: 13px; font-weight: 600; margin: 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cml-row .r3 { font-size: 12px; color: var(--cp-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cml-row .imp { color: #8a6d0b; font-weight: 800; margin-right: 4px; }
+.cml-mread { overflow-y: auto; padding: 18px 22px; min-width: 0; }
+.cml-mread h3 { margin: 0 0 8px; font-size: 18px; color: var(--cp-ink); line-height: 1.35; }
+.cml-mhead { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12px; color: var(--cp-text-2); padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--cp-border); }
+.cml-mhead .fr { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--cp-text); }
+.cml-mhead .av { width: 28px; height: 28px; border-radius: 50%; background: var(--cp-navy); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+.cml-mbody { font-size: 14px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--cp-text); }
+.cml-mempty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--cp-muted); font-size: 13px; padding: 20px; text-align: center; }
+body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bottom: 8px; }
+@media (max-width: 760px) {
+  .cml-mail { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .cml-mail .cml-mread { display: none; }
+  .cml-mail.has-sel .cml-mlist { display: none; }
+  .cml-mail.has-sel .cml-mread { display: block; }
+  body.cp-has-sidenav .cml-back, .cml-back { display: inline-flex !important; }
+}
+.cp-tabbadge { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; padding: 0 5px; margin-left: 5px; border-radius: 9px; background: var(--cp-danger-solid, #c0392b); color: #fff; font-size: 11px; font-weight: 700; text-align: center; box-sizing: border-box; }
+.cp-tabbadge[hidden] { display: none; }
+</style>
+<script>
+(function () {
+  if (window.cpMsgList) return;
+  var PAGE = 10, LIMIT = 100;
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function safeUrl(u) { return /^https?:\/\/[^\s]+$/i.test(String(u || '')) ? String(u) : ''; }
+  function when(iso) {
+    var d = new Date(iso); if (isNaN(d)) return String(iso || '').slice(0, 16);
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function shortWhen(iso) {
+    var d = new Date(iso); if (isNaN(d)) return '';
+    var t = new Date(), same = d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return same ? p(d.getHours()) + ':' + p(d.getMinutes()) : (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  function md(s) { return String(s || '').replace(/^(\d{4})-0?(\d+)-0?(\d+)$/, '$2/$3'); }
+
+  function mount(root, opts) {
+    opts = opts || {};
+    var items = [], extra = {}, filter = 'all', shown = PAGE, selId = null;
+    var openIds = {};
+
+    function card(m) {
+      var atts = (m.attachments || []).map(safeUrl).filter(String);
+      var ev = m.eventDate ? '📅 ' + md(m.eventDate) + (m.eventEndDate && m.eventEndDate !== m.eventDate ? '〜' + md(m.eventEndDate) : '') : '';
+      var imp = m.priority === 'important' || m.category === '緊急';
+      var ns = (m.notShown || []).length ? '<div class="cml-warn">生徒の画面には出ていません: ' + esc(m.notShown.join(' / ')) + '</div>' : '';
+      return '<div class="cml-msg' + (m.read ? '' : ' unread') + (imp ? ' important' : '') + (openIds[m.id] ? ' open' : '') + '" role="button" tabindex="0" aria-expanded="' + (!!openIds[m.id]) + '" data-id="' + esc(m.id) + '">' +
+        '<div class="cml-top">' + (m.read ? '' : '<span class="cml-dot"></span>') + (imp ? '<span class="cml-imp">重要</span>' : '') +
+        (m.category && m.category !== '緊急' ? '<span class="cml-cat">' + esc(m.category) + '</span>' : '') +
+        '<span>' + esc(m.senderName) + (m.senderName ? ' ・ ' : '') + esc(when(m.createdAt)) + '</span>' +
+        (opts.showState && !m.noState ? '<span class="cml-state">' + (m.read ? '既読' : '<b>未読</b>') + '</span>' : '') + '</div>' +
+        '<div class="cml-title"><span>' + esc(m.title) + '</span><span class="material-symbols-rounded chev" aria-hidden="true">expand_more</span></div>' +
+        (ev ? '<div class="cml-ev">' + esc(ev) + '</div>' : '') +
+        '<div class="cml-body">' + esc(m.body) + '</div>' +
+        '<div class="cml-extra">' +
+          (m.optionType ? '<div class="cml-warn">' + (m.optionType === 'survey' ? 'アンケート' : '面談') + 'の回答・予約は、保護者の方が Bridge から行います。</div>' : '') +
+          (atts.length ? '<div class="cml-atts">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span>添付 ' + (i + 1) + '</a>'; }).join('') + '</div>' : '') +
+        '</div>' + ns + '</div>';
+    }
+
+    function draw() {
+      if (extra.loading) { root.innerHTML = '<div class="cml-empty">読み込み中…</div>'; return; }
+      if (extra.problem) { root.innerHTML = '<div class="cml-empty" role="alert">' + esc(extra.problem) + '</div>'; return; }
+      var unread = items.filter(function (m) { return !m.read; }).length;
+      var list = filter === 'unread' ? items.filter(function (m) { return !m.read; }) : items;
+      var bar = '<div class="cml-bar" role="group" aria-label="表示の絞り込み">' +
+        '<button type="button" class="cml-chip cp-keep" data-f="all" aria-pressed="' + (filter === 'all') + '">すべて<span class="n">' + items.length + '</span></button>' +
+        '<button type="button" class="cml-chip cp-keep" data-f="unread" aria-pressed="' + (filter === 'unread') + '">未読<span class="n">' + unread + '</span></button>' +
+        (opts.onMarkAll && unread ? '<button type="button" class="btn-secondary cp-keep cml-all" data-all="1">すべて既読にする</button>' : '') + '</div>';
+      if (opts.layout === 'mail') {
+        if (!items.length) { root.innerHTML = bar + '<div class="cml-empty">' + esc(extra.empty || '連絡はありません') + '</div>'; return; }
+        var mlist = list.slice(0, LIMIT);
+        var sel = items.filter(function (m) { return String(m.id) === String(selId); })[0] || null;
+        var rows = mlist.map(function (m) {
+          var imp = m.priority === 'important' || m.category === '緊急';
+          return '<button type="button" class="cml-row cp-keep' + (m.read ? '' : ' unread') + '" data-mid="' + esc(m.id) + '" role="option" aria-selected="' + (sel && String(sel.id) === String(m.id)) + '"><span class="dot" aria-hidden="true"></span>' +
+            '<div class="r1"><b>' + esc(m.senderName || m.category || '連絡') + '</b><span>' + esc(shortWhen(m.createdAt)) + '</span></div>' +
+            '<div class="r2">' + (imp ? '<span class="imp">重要</span>' : '') + esc(m.title) + '</div><div class="r3">' + esc(String(m.body || '').replace(/\s+/g, ' ').slice(0, 70)) + '</div></button>';
+        }).join('') || '<div class="cml-empty">該当する連絡はありません</div>';
+        var det;
+        if (sel) {
+          var atts = (sel.attachments || []).map(safeUrl).filter(String);
+          var ev = sel.eventDate ? '📅 ' + md(sel.eventDate) + (sel.eventEndDate && sel.eventEndDate !== sel.eventDate ? '〜' + md(sel.eventEndDate) : '') : '';
+          var nm = String(sel.senderName || sel.category || '連').trim();
+          det = '<button type="button" class="btn-secondary cp-keep cml-back" data-back="1"><span class="material-symbols-rounded">arrow_back</span>一覧へ</button>' +
+            '<h3>' + esc(sel.title) + '</h3><div class="cml-mhead"><span class="fr"><span class="av">' + esc(nm.charAt(0)) + '</span>' + esc(sel.senderName || '') + '</span>' +
+            (sel.category ? '<span class="cml-cat">' + esc(sel.category) + '</span>' : '') + '<span>' + esc(when(sel.createdAt)) + '</span></div>' +
+            (ev ? '<div class="cml-ev" style="font-size:13px;margin-bottom:8px">' + esc(ev) + '</div>' : '') +
+            '<div class="cml-mbody">' + esc(sel.body) + '</div>' +
+            (sel.optionType ? '<div class="cml-warn" style="margin-top:12px">' + (sel.optionType === 'survey' ? 'アンケート' : '面談') + 'の回答・予約は、保護者の方が Bridge から行います。</div>' : '') +
+            (atts.length ? '<div class="cml-atts" style="margin-top:14px">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span>添付 ' + (i + 1) + '</a>'; }).join('') + '</div>' : '');
+        } else det = '<div class="cml-mempty">左の一覧から、読みたい連絡を選んでください。</div>';
+        var prevScroll = 0; var old = root.querySelector('.cml-mlist'); if (old) prevScroll = old.scrollTop;
+        root.innerHTML = bar + '<div class="cml-mail' + (sel ? ' has-sel' : '') + '"><div class="cml-mlist" role="listbox" aria-label="連絡の一覧">' + rows + '</div><div class="cml-mread">' + det + '</div></div>';
+        var nl = root.querySelector('.cml-mlist'); if (nl) nl.scrollTop = prevScroll;
+        return;
+      }
+      var body;
+      if (!items.length) body = '<div class="cml-empty">' + esc(extra.empty || '連絡はありません') + '</div>';
+      else if (!list.length) body = '<div class="cml-empty">未読の連絡はありません</div>';
+      else {
+        body = '<div class="cml-list">' + list.slice(0, shown).map(card).join('') + '</div>';
+        if (list.length > shown) body += '<button type="button" class="btn-secondary cp-keep cml-more" data-more="1">もっと見る（残り ' + (list.length - shown) + ' 件）</button>';
+      }
+      var foot = items.length >= LIMIT ? '<div class="cml-foot">新しい ' + LIMIT + ' 件までを表示しています。これより古い連絡は表示されません。</div>' : '';
+      root.innerHTML = bar + body + foot;
+    }
+
+    function toggle(card) {
+      var id = card.getAttribute('data-id'), m = items.filter(function (x) { return String(x.id) === id; })[0];
+      var on = !card.classList.contains('open');
+      card.classList.toggle('open', on); card.setAttribute('aria-expanded', String(on)); openIds[id] = on;
+      if (on && m && !m.read && opts.onOpen) { m.read = true; opts.onOpen(id, m); draw(); }   // 開いた＝既読（生徒側のみ onOpen を渡す）
+    }
+    function selectMail(id) {
+      selId = id;
+      var m = items.filter(function (x) { return String(x.id) === String(id); })[0];
+      if (m && !m.read && opts.onOpen) { m.read = true; opts.onOpen(id, m); }   // 開いた＝既読
+      draw();
+    }
+    root.addEventListener('click', function (e) {
+      var rowEl = e.target.closest('[data-mid]'); if (rowEl) { selectMail(rowEl.getAttribute('data-mid')); return; }
+      if (e.target.closest('[data-back]')) { selId = null; draw(); return; }
+      var f = e.target.closest('[data-f]'); if (f) { filter = f.getAttribute('data-f'); shown = PAGE; draw(); return; }
+      if (e.target.closest('[data-more]')) { shown += PAGE; draw(); return; }
+      if (e.target.closest('[data-all]')) { if (opts.onMarkAll) opts.onMarkAll(); return; }
+      if (e.target.closest('a')) return;
+      var c = e.target.closest('.cml-msg'); if (c) toggle(c);
+    });
+    root.addEventListener('keydown', function (e) {
+      if (opts.layout === 'mail' && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.target.closest && e.target.closest('.cml-mlist')) {
+        var ids = Array.prototype.map.call(root.querySelectorAll('.cml-row'), function (b) { return b.getAttribute('data-mid'); });
+        var i = ids.indexOf(String(selId)), n = ids[Math.max(0, Math.min(ids.length - 1, (i < 0 ? 0 : i + (e.key === 'ArrowDown' ? 1 : -1))))];
+        if (n != null) { e.preventDefault(); selectMail(n); var b = root.querySelector('.cml-row[data-mid="' + n + '"]'); if (b) b.focus(); }
+        return;
+      }
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var c = e.target.closest && e.target.closest('.cml-msg'); if (c && e.target === c) { e.preventDefault(); toggle(c); }
+    });
+    return { set: function (list, ex) { items = list || []; extra = ex || {}; draw(); }, redraw: draw };
+  }
+
+  /* 生徒の「連絡」タブ: cp-inbox（ベル）のデータを、同じ見え方でタブに出す。ベルを押すとこのタブが開く */
+  function bindStudent(root, o) {
+    o = o || {};
+    var ml = mount(root, { onOpen: function (id) { if (window.cpInboxApi) cpInboxApi.markRead(id); }, onMarkAll: function () { if (window.cpInboxApi) cpInboxApi.markAll(); }, showState: false, layout: 'mail' });
+    function refresh() {
+      var s = window.cpInboxApi ? cpInboxApi.get() : null; if (!s) return;
+      ml.set(s.items.map(function (m) { return Object.assign({}, m); }), { problem: s.problem });
+      if (o.badge) { o.badge.hidden = s.unread <= 0; o.badge.textContent = s.unread > 99 ? '99+' : String(s.unread); }
+      if (typeof window.cpInboxAfter === 'function') { try { window.cpInboxAfter(); } catch (e) {} }   // ページ側の追加表示（トップの未読カードなど）
+    }
+    window.cpInboxUpdated = refresh;
+    ml.set([], { loading: true });
+    refresh();
+    return { refresh: refresh };
+  }
+  window.cpMsgList = { mount: mount, bindStudent: bindStudent };
+})();
+</script>
+
+<script>
+/* 連絡: ベルを押すと「連絡」の画面が開く（下のタブには出さない） */
+(function () {
+  var root = document.getElementById('msg-mount'); if (!root) return;
+  cpMsgList.bindStudent(root, { badge: document.getElementById('msg-tab-badge') });
+  window.cpInboxTab = function () { switchTab('messages'); };
+})();
+</script>
+<meta charset="utf-8">
 <!-- TNUSS CareerPort 共通部品: 生徒の「連絡」受信箱（ベル + 未読バッジ + 一覧パネル）
      使い方: 生徒向けページの body 終了タグの直前で include('cp-inbox') を読み込む（GAS のスクリプトレット）
      依存: cp-design（トークン）, google.script.run（GAS / PWA どちらでも可）
@@ -2051,15 +2289,21 @@ init();
       problem = (r && r.problem) || '';   // 接続・登録の問題は、ベルを消さずに、中で理由を知らせる
       items = (r && r.messages) || []; unread = (r && r.unread) || 0;
       if (!first && lastUnread !== null && unread > lastUnread) { toast('新しい連絡があります'); bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring'); }
-      lastUnread = unread; setBadge(); render(); banner();
+      lastUnread = unread; setBadge(); render(); banner(); changed();
     }).catch(function (e) {
       // 生徒以外（教員の確認画面など）では出さない。それ以外の一時的な失敗では、ベルを消さずに、理由を出す
       if (/生徒として|ログインしてください/.test(String((e && e.message) || e))) { if (first && bell) bell.style.display = 'none'; return; }
-      problem = '連絡を読み込めませんでした。しばらくしてから、もう一度開いてください。'; items = []; unread = 0; setBadge(); render();
+      problem = '連絡を読み込めませんでした。しばらくしてから、もう一度開いてください。'; items = []; unread = 0; setBadge(); render(); changed();
     });
   }
 
+  function changed() { try { if (window.cpInboxUpdated) cpInboxUpdated(); } catch (e) {} }
   function open() {
+    if (window.cpInboxTab) {                              // 連絡のタブがある画面では、ベルでそのタブを開く
+      try { sessionStorage.setItem('cp_imp_seen', '1'); } catch (e) {}
+      var bn = document.getElementById('cp-imp-banner'); if (bn) bn.remove();
+      window.cpInboxTab(); load(false); return;
+    }
     panel.hidden = false; document.body.style.overflow = 'hidden';
     try { sessionStorage.setItem('cp_imp_seen', '1'); } catch (e) {}
     var b = document.getElementById('cp-imp-banner'); if (b) b.remove();
@@ -2069,7 +2313,7 @@ init();
 
   function markAll() {
     if (!unread) return;
-    items.forEach(function (m) { m.read = true; }); unread = 0; setBadge(); render();
+    items.forEach(function (m) { m.read = true; }); unread = 0; setBadge(); render(); banner(); changed();
     run('markAllMessagesRead').catch(function () { load(false); });
   }
 
@@ -2093,8 +2337,14 @@ init();
         run('markMessageRead', [id]).catch(function () {});
       }
     });
+    window.cpInboxApi = {
+      get: function () { return { items: items, unread: unread, problem: problem }; },
+      reload: function () { return load(false); },
+      markRead: function (id) { var m = items.filter(function (x) { return String(x.id) === String(id); })[0]; if (m && !m.read) { m.read = true; unread = Math.max(0, unread - 1); setBadge(); render(); banner(); changed(); } run('markMessageRead', [String(id)]).catch(function () {}); },   // changed(): 連絡タブのバッジ・サイドバー・トップのカードも更新する
+      markAll: function () { markAll(); }
+    };
     setTimeout(function () { load(true); }, 800);           // 起動直後の通信と競合しないよう少し遅らせる
-    timer = setInterval(function () { if (!document.hidden && panel.hidden) load(false); }, 90000);
+    timer = setInterval(function () { if (!document.hidden && panel.hidden) load(false); }, 180000);   // Bridge への問い合わせは重いので、3分おき
     document.addEventListener('visibilitychange', function () { if (!document.hidden) load(false); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
@@ -2117,7 +2367,23 @@ init();
 .cz .cz-phase { font-size: 22px; font-weight: 800; color: var(--cp-ink); line-height: 1.3; }
 .cz .cz-meta { font-size: 12px; color: var(--cp-muted); margin-top: 2px; }
 .cz .cz-bar { height: 8px; border-radius: 4px; background: var(--cp-hover); overflow: hidden; margin-top: 10px; }
-.cz .cz-bar i { display: block; height: 100%; background: var(--cp-navy); }
+.cz .cz-bar i { display: block; height: 100%; background: var(--cp-navy); border-radius: 4px; }
+.cz .cz-steps { display: flex; margin: 12px 0 2px; }
+.cz .cz-step { flex: 1; position: relative; padding-top: 18px; text-align: center; font-size: 11px; color: var(--cp-muted); min-width: 0; }
+.cz .cz-step::before { content: ""; position: absolute; top: 3px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--cp-border-strong); z-index: 1; }
+.cz .cz-step::after { content: ""; position: absolute; top: 8px; left: 50%; right: -50%; height: 2px; background: var(--cp-border-strong); }
+.cz .cz-step:last-child::after { display: none; }
+.cz .cz-step.on { color: var(--cp-ink); font-weight: 700; }
+.cz .cz-step.on::before, .cz .cz-step.on::after { background: var(--cp-navy); }
+.cz .cz-step.cur::before { box-shadow: 0 0 0 4px var(--cp-tint-mid); }
+.cz .cz-hero { padding: 14px 16px; }
+.cz .cz-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--cp-border); margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
+.cz .cz-tab { flex: none; border: 0 !important; background: transparent !important; color: var(--cp-text-2) !important; padding: 9px 14px !important; font: 700 13px/1.2 inherit; cursor: pointer; border-bottom: 3px solid transparent !important; border-radius: 8px 8px 0 0 !important; box-shadow: none !important; white-space: nowrap; height: auto !important; }
+.cz .cz-tab .n { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--cp-muted); }
+.cz .cz-tab:hover { background: var(--cp-tint-soft) !important; }
+.cz .cz-tab[aria-selected="true"] { color: var(--cp-ink) !important; border-bottom-color: var(--cp-navy) !important; background: var(--cp-tint-soft) !important; }
+.cz .cz-panel[hidden] { display: none; }
+.cz .cz-hero .cz-phase { font-size: 24px; }
 .cz .cz-note { padding: 8px 0; border-bottom: 1px solid var(--cp-hover); }
 .cz .cz-note:last-child { border-bottom: 0; }
 .cz .cz-note .t { font-weight: 700; font-size: 13px; }
@@ -2167,18 +2433,24 @@ init();
 
   // ───────── 探究のトップ ─────────
   function renderHome(h, root) {
-    var out = '';
-    if (h.feedback && h.feedback.comment) {
-      out += '<section><h2><span class="material-symbols-rounded">forum</span>先生からのコメント</h2><div class="cz-card cz-fb"><b>' + esc(h.feedback.teacherName || '担当') + ' 先生より' + (h.feedback.date ? '（' + esc(h.feedback.date) + ' 更新）' : '') + '</b><p>' + esc(h.feedback.comment) + '</p></div></section>';
-    }
-    out += '<section><h2><span class="material-symbols-rounded">flag</span>いまの探究</h2><div class="cz-card">' +
+    var out = '', P = { now: '', note: '', el: '', works: '' };
+    var syl0 = (h.elearning && h.elearning.syllabus) || [], prog0 = (h.elearning && h.elearning.progress) || [];
+    var done0 = prog0.filter(function (v) { return v === 1; }).length, pct0 = syl0.length ? Math.round(done0 / syl0.length * 100) : null;
+    // まず「いまの探究」（フェーズ・進み具合・e-learning）を1枚にまとめて出し、そのあとに先生のコメント
+    var phases = (h.phases && h.phases.length) ? h.phases : ['課題設定', '情報収集', '分析・考察', 'まとめ・発表', '振り返り'], curI = phases.indexOf(h.phase);
+    P.now += '<section><h2><span class="material-symbols-rounded">flag</span>いまの探究</h2><div class="cz-card cz-hero">' +
       '<div class="cz-phase">' + esc(h.phase || '（フェーズ未設定）') + '</div>' +
       '<div class="cz-meta">' + (h.seminars && h.seminars.length ? esc(h.seminars.join('・')) : 'ゼミ未所属') + (h.teachers && h.teachers.length ? ' ／ 担当：' + esc(h.teachers.join('・')) + ' 先生' : '') + (h.status ? ' ／ ' + esc(h.status) : '') + '</div>' +
-      (h.progressPct != null ? '<div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + h.progressPct + '" aria-label="探究の進み具合"><i style="width:' + Math.max(0, Math.min(100, h.progressPct)) + '%"></i></div>' : '') +
+      '<div class="cz-steps" role="list" aria-label="探究のフェーズ">' + phases.map(function (p, i) { return '<div class="cz-step' + (i <= curI ? ' on' : '') + (i === curI ? ' cur' : '') + '" role="listitem"' + (i === curI ? ' aria-current="step"' : '') + '>' + esc(p) + '</div>'; }).join('') + '</div>' +
+      (h.progressPct != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究の進み具合</span><b>' + Math.round(h.progressPct) + '%</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + h.progressPct + '" aria-label="探究の進み具合" style="margin-top:4px"><i style="width:' + Math.max(0, Math.min(100, h.progressPct)) + '%"></i></div>' : '') +
+      (pct0 != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究基礎 e-learning</span><b>' + done0 + ' / ' + syl0.length + '</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct0 + '" aria-label="e-learning の進み具合" style="margin-top:4px"><i style="width:' + pct0 + '%"></i></div>' : '') +
       '</div></section>';
+    if (h.feedback && h.feedback.comment) {
+      P.now += '<section><h2><span class="material-symbols-rounded">forum</span>先生からのコメント</h2><div class="cz-card cz-fb"><b>' + esc(h.feedback.teacherName || '担当') + ' 先生より' + (h.feedback.date ? '（' + esc(h.feedback.date) + ' 更新）' : '') + '</b><p>' + esc(h.feedback.comment) + '</p></div></section>';
+    }
 
     if (h.notices && h.notices.length) {
-      out += '<section><h2><span class="material-symbols-rounded">info</span>学校・ゼミからのお知らせ</h2><div class="cz-card">' +
+      P.note += '<section><h2><span class="material-symbols-rounded">info</span>学校・ゼミからのお知らせ</h2><div class="cz-card">' +
         h.notices.slice(0, 5).map(function (n) { return '<div class="cz-note"><div class="d">' + esc(n.date) + ' ・ ' + esc(n.category) + '</div><div class="t">' + esc(n.title) + '</div><div class="c">' + esc(n.content) + '</div></div>'; }).join('') + '</div></section>';
     }
 
@@ -2187,7 +2459,7 @@ init();
       var done = prog.filter(function (v) { return v === 1; }).length, pct = Math.round(done / syl.length * 100);
       var groups = [], idx = {};
       syl.forEach(function (st, i) { var c = st.category || '探究基礎'; if (!(c in idx)) { idx[c] = groups.length; groups.push({ name: c, items: [] }); } groups[idx[c]].items.push({ st: st, i: i }); });
-      out += '<section><details class="cz-sec"><summary><span class="material-symbols-rounded">school</span>探究基礎 e-learning<span class="n">' + done + ' / ' + syl.length + '</span></summary><div class="cz-sec-b"><div class="cz-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-weight:700"><span>スキル習得状況</span><span>' + done + ' / ' + syl.length + '（' + pct + '%）</span></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="e-learning の進み具合"><i style="width:' + pct + '%"></i></div></div>' +
+      P.el += '<section><div class="cz-sec-b"><div class="cz-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-weight:700"><span>スキル習得状況</span><span>' + done + ' / ' + syl.length + '（' + pct + '%）</span></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-label="e-learning の進み具合"><i style="width:' + pct + '%"></i></div></div>' +
         groups.map(function (g, gi) {
           var gd = g.items.filter(function (x) { return prog[x.i] === 1; }).length;
           return '<details' + (gi === 0 ? ' open' : '') + '><summary><span class="material-symbols-rounded">folder_open</span>' + esc(g.name) + '<span class="n">' + gd + ' / ' + g.items.length + '</span></summary>' +
@@ -2198,15 +2470,28 @@ init();
                 '<div class="bt">' + (v ? '<a class="btn-secondary" href="' + esc(v) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">play_circle</span>動画</a>' : '') +
                 (u ? '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener">' + (isDone ? '復習・再提出' : '課題へ') + '</a>' : '') + '</div></div>';
             }).join('') + '</details>';
-        }).join('') + '</div></details></section>';
+        }).join('') + '</div></section>';
     }
 
-    out += '<section><details class="cz-sec"><summary><span class="material-symbols-rounded">search</span>先輩の作品を探す</summary><div class="cz-sec-b">' +
+    P.works += '<section><div class="cz-sec-b">' +
       '<div class="cz-card"><label for="cz-q" style="display:block;font-size:12px;margin-bottom:4px">キーワード（テーマ・ゼミ名など）</label>' +
       '<div style="display:flex;gap:8px"><input id="cz-q" type="search" placeholder="例：地域活性化" style="flex:1;min-width:0"><button class="btn-primary" id="cz-go" type="button">検索</button></div>' +
       '<div class="chips" id="cz-cats" role="group" aria-label="作品の種類">' + CATS.map(function (c, i) { return '<button type="button" class="chip-b cp-keep" data-cat="' + (i ? esc(c) : '') + '" aria-pressed="' + (i === 0) + '">' + esc(c) + '</button>'; }).join('') + '</div>' +
-      '<div id="cz-results" aria-live="polite"><div class="cz-empty">キーワードか種類を選んで検索してください</div></div></div></div></details></section>';
+      '<div id="cz-results" aria-live="polite"><div class="cz-empty">キーワードか種類を選んで検索してください</div></div></div></div></section>';
+    // 画面を4つのタブに分ける: いまの探究／お知らせ／e-learning／先輩の作品
+    var TABS = [['now', 'いまの探究', ''], ['note', 'お知らせ', (h.notices && h.notices.length) ? String(h.notices.length) : ''], ['el', 'e-learning', syl.length ? done + '/' + syl.length : ''], ['works', '先輩の作品', '']];
+    var cur = 'now'; try { cur = sessionStorage.getItem('cz-tab') || 'now'; } catch (e) {}
+    if (!TABS.some(function (t) { return t[0] === cur; })) cur = 'now';
+    out = '<div class="cz-tabs" role="tablist" aria-label="探究・ゼミ">' + TABS.map(function (t) { return '<button type="button" role="tab" class="cz-tab cp-keep" data-t="' + t[0] + '" aria-selected="' + (t[0] === cur) + '">' + esc(t[1]) + (t[2] ? '<span class="n">' + esc(t[2]) + '</span>' : '') + '</button>'; }).join('') + '</div>' +
+      TABS.map(function (t) { return '<div class="cz-panel" role="tabpanel" data-p="' + t[0] + '"' + (t[0] === cur ? '' : ' hidden') + '>' + (P[t[0]] || '<div class="cz-empty" style="padding:24px 0;text-align:center">まだ表示するものがありません。</div>') + '</div>'; }).join('');
     root.innerHTML = '<div class="cz">' + out + '</div>';
+    root.querySelector('.cz-tabs').addEventListener('click', function (e) {
+      var b = e.target.closest('.cz-tab'); if (!b) return; var t = b.getAttribute('data-t');
+      root.querySelectorAll('.cz-tab').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+      root.querySelectorAll('.cz-panel').forEach(function (x) { x.hidden = x.getAttribute('data-p') !== t; });
+      try { sessionStorage.setItem('cz-tab', t); } catch (er) {}
+    });
+
     bindWorks(root);
   }
 
@@ -2262,8 +2547,10 @@ init();
       .catch(function (e) { loaded = false; root.innerHTML = '<div class="cz"><div class="cz-card">探究のデータを読み込めませんでした（' + esc(errText(e)) + '）。 <button class="btn-secondary cp-keep" type="button" id="cz-retry">もう一度</button></div></div>'; var b = root.querySelector('#cz-retry'); if (b) b.onclick = function () { load(root); }; });
   }
   function start() {
-    var ai = document.getElementById('zemi-ai-mount'); if (ai) buildAi(ai);
-    var root = document.getElementById('zemi-mount'); if (!root) return;
+    var root = document.getElementById('zemi-mount');
+    try { var ai = document.getElementById('zemi-ai-mount'); if (ai) buildAi(ai); } catch (e) { if (window.console) console.error('zemi ai:', e); }   // AI ボタンの失敗で、探究の表示まで止めない
+    if (!root) return;
+    if (!(window.google && google.script && google.script.run)) { root.innerHTML = '<div class="cz"><div class="cz-card">この画面では、探究のデータを読み込めません（google.script.run が使えません）。ページを開き直してください。</div></div>'; return; }
     // 見えたとき（タブを開いたとき）に読み込む。起動直後の通信を増やさない
     if ('IntersectionObserver' in window) {
       var io = new IntersectionObserver(function (es) { if (es.some(function (x) { return x.isIntersecting; })) { io.disconnect(); load(root); } });
@@ -2275,7 +2562,13 @@ init();
       if (root.offsetParent !== null) { clearInterval(poll); load(root); }
     }, 1000);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  function startSafe() {
+    try { start(); } catch (e) {
+      if (window.console) console.error('zemi start:', e);
+      var r = document.getElementById('zemi-mount'); if (r) r.innerHTML = '<div class="cz"><div class="cz-card">探究の表示を始められませんでした（' + esc(errText(e)) + '）。ページを再読み込みしてください。</div></div>';
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startSafe); else startSafe();
 })();
 </script>
 

@@ -137,7 +137,8 @@
     }
   }
   function a11yAll() {
-    setTimeout(scrollables, 1500); window.addEventListener('load', function () { setTimeout(scrollables, 600); });
+    var idle = function (f, t) { setTimeout(function () { if (window.requestIdleCallback) requestIdleCallback(f, { timeout: 3000 }); else f(); }, t); };   // 重い走査は、描画の合間（アイドル時）に回す
+    idle(scrollables, 1500); window.addEventListener('load', function () { idle(scrollables, 600); });
     fixControls(document.body || doc); syncTabs();
     var mainEl = document.querySelector('main, [role=main]');
     if (!mainEl) {
