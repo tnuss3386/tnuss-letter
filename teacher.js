@@ -55,7 +55,7 @@
       (p.scheduled ? '<div class="row"><span class="row-label">公開予定</span><span class="row-value">' + esc(L.fmt.mdhm(p.date)) + '</span></div>' : '') +
       (p.lastRemind ? '<div class="row"><span class="row-label">前回の催促</span><span class="row-value">' + esc(L.fmt.mdhm(p.lastRemind)) + '</span></div>' : '') +
       '</div></div>';
-    if (!p.scheduled && !p.status) h += '<div id="statsBox" class="section"><div class="skeleton" style="margin:0"></div></div>';
+    if (!p.scheduled && !p.status) h += '<div id="statsBox" class="section"><div class="page-loading" style="padding:16px 0" role="status" aria-label="読み込み中"><div class="spinner" style="width:28px;height:28px;border-width:3px" aria-hidden="true"></div></div></div>';
     if (!p.canEdit) return h + (S.perm === '閲覧のみ' ? '' : '<div class="section"><div class="group-footer">この投稿の編集・削除は、投稿した先生か管理者のみ行えます。</div></div>');
     h += '<div class="section"><div class="group">' +
       '<button class="row tint" data-act="editPost" data-id="' + esc(p.id) + '">' + L.icon('compose') + '<span class="row-label">この投稿を編集</span></button>' +

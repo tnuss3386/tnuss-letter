@@ -310,7 +310,7 @@
   L.views.home = function () {
     var src = sourcePosts();
     if (src === null || src === undefined) {
-      return { nav: { title: '連絡' }, html: '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>' };
+      return { nav: { title: '連絡' }, html: '<div class="page-loading" role="status" aria-label="読み込み中"><div class="spinner" aria-hidden="true"></div></div>' };
     }
     resetView();
     var html = pushBannerHtml() + approvalBannerHtml() + '<div id="yearBar">' + yearBarHtml() + '</div>' +

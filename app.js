@@ -81,7 +81,7 @@
   function showSkeleton(msg) {
     setChrome(false);
     $nav.innerHTML = '';
-    $view.innerHTML = '<div class="skeleton" style="margin-top:56px"></div><div class="skeleton"></div><div class="skeleton"></div>' +
+    $view.innerHTML = '<div class="page-loading" role="status" aria-label="読み込み中"><div class="spinner" aria-hidden="true"></div></div>' +
       (msg ? '<p class="meta" id="slowHint" style="text-align:center;margin-top:16px" role="status">' + esc(msg) + '</p>' : '');
     clearTimeout(slowTimer);
     if (msg) slowTimer = setTimeout(function () {   // 長く待たされたときは、止まっているように見えないよう、案内と再読み込みを出す

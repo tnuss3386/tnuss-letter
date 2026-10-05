@@ -578,3 +578,6 @@ body.wide .page { animation: none; }
 
 /* ログイン画面の案内文: 広い画面では改行せず1行に（スマホは今まで通り） */
 @media (min-width: 600px) { .login p.lead br.sp { display: none; } .login p.lead, .login p.foot { white-space: nowrap; } }
+
+/* 読み込み中: 画面の中央で、くるくる回る表示 */
+.page-loading { display: flex; justify-content: center; padding: 30vh 0 0; }

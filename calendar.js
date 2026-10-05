@@ -115,7 +115,7 @@
 
   L.views.cal = function () {
     if (S.role === 'teacher' && S.tposts === null) {
-      return { nav: { title: '予定' }, html: '<div class="skeleton"></div><div class="skeleton"></div>' };
+      return { nav: { title: '予定' }, html: '<div class="page-loading" role="status" aria-label="読み込み中"><div class="spinner" aria-hidden="true"></div></div>' };
     }
     return {
       nav: { title: '予定' },
