@@ -10,6 +10,15 @@
   S.cal = { y: +tp[0], m: +tp[1], sel: today };
 
   var SHEET_COLOR = '#2f7d6d';   // 「行事予定」シートの行事の色（連絡の行事とは別の色）
+  var BOOKING_COLOR = '#1b7a31'; // 自分の面談の予約の色
+  var KIND_RANK = { booking: 0, event: 1, sheet: 2, deadline: 3 };
+
+  function evColor(e) {
+    if (e.kind === 'deadline') return '#ff9500';
+    if (e.kind === 'booking') return BOOKING_COLOR;
+    if (e.kind === 'sheet') return SHEET_COLOR;
+    return L.catColor(e.post.category);
+  }
 
   function posts() { return ((S.role === 'teacher' ? S.tposts : S.posts) || []).filter(function (p) { return !p.status; }); }
 
@@ -23,12 +32,20 @@
         var d = p.eventDate, n = 0;
         while (d <= end && n < 62) { add(d, p, 'event'); d = L.jst.addDays(d, 1); n++; }
       }
-      if (p.option && p.option.deadline && !p.option.closed) add(L.fmt.ymd(p.option.deadline), p, 'deadline');
+      var booked = S.role === 'parent' && p.option && p.option.type === 'interview' && p.option.mySlot;
+      // 予約した面談は、その日時に予定として載る（変更・取り消しをすると、ここも変わる）
+      if (booked) add(L.fmt.ymd(p.option.mySlot.start), p, 'booking');
+      // 予約が済んだ面談は、予約期限の表示は出さない
+      if (p.option && p.option.deadline && !p.option.closed && !booked) add(L.fmt.ymd(p.option.deadline), p, 'deadline');
     });
     // 「行事予定」シートの行事（連絡の投稿はない）
     (S.events || []).forEach(function (ev) {
       var d = ev.date, n = 0;
       while (d <= ev.end && n < 62) { add(d, ev, 'sheet'); d = L.jst.addDays(d, 1); n++; }
+    });
+    // 同じ日の中では、自分の予約を先頭にする
+    Object.keys(map).forEach(function (d) {
+      map[d].sort(function (a, b) { return (KIND_RANK[a.kind] || 0) - (KIND_RANK[b.kind] || 0); });
     });
     return map;
   }
@@ -78,16 +95,19 @@
       var off = hol[cell.ymd];
       var colors = [];
       evs.forEach(function (e) {
-        var col = e.kind === 'deadline' ? '#ff9500' : e.kind === 'sheet' ? SHEET_COLOR : L.catColor(e.post.category);
+        var col = evColor(e);
         if (colors.indexOf(col) === -1 && colors.length < 3) colors.push(col);
       });
       var dow = i % 7;
       var chips = '';
       if (L.isWide()) {   // 広い画面: 日ごとに、予定の名前を最大3件まで並べる
         var seen = {};
-        var shown = evs.filter(function (e) { var t = e.kind === 'deadline' ? '〆 ' + e.post.title : e.post.title; if (seen[t]) return false; seen[t] = 1; e._t = t; return true; });
+        var shown = evs.filter(function (e) {
+          var t = e.kind === 'deadline' ? '〆 ' + e.post.title : e.kind === 'booking' ? '面談 ' + L.fmt.hm(e.post.option.mySlot.start) : e.post.title;
+          if (seen[t]) return false; seen[t] = 1; e._t = t; return true;
+        });
         chips = shown.slice(0, 3).map(function (e) {
-          var col = e.kind === 'deadline' ? '#ff9500' : e.kind === 'sheet' ? SHEET_COLOR : L.catColor(e.post.category);
+          var col = evColor(e);
           return '<span class="cal-chip" style="--c:' + col + '" title="' + esc(e._t) + '">' + esc(e._t) + '</span>';
         }).join('') + (shown.length > 3 ? '<span class="cal-more">他 ' + (shown.length - 3) + ' 件</span>' : '');
       }
@@ -108,7 +128,14 @@
         '<span class="row-main"><span class="row-title">' + esc(ev.title) + '</span>' + (meta ? '<span class="when">' + esc(meta) + '</span>' : '') + '</span></div>';
     }
     var p = e.post;
-    var color = e.kind === 'deadline' ? '#ff9500' : L.catColor(p.category);
+    var color = evColor(e);
+    var who = S.role === 'parent' && S.children && S.children.length > 1 && S.child ? S.child.name + 'の' : '';
+    if (e.kind === 'booking') {
+      var slot = p.option.mySlot;
+      return '<button class="row cal-ev" data-act="open" data-id="' + esc(p.id) + '"><span class="bar" style="--c:' + color + '"></span>' +
+        '<span class="row-main"><span class="row-title">' + esc(who) + '面談の予約　' + esc(L.fmt.hm(slot.start) + '〜' + L.fmt.hm(slot.end)) + '</span>' +
+        '<span class="when">' + esc(p.title) + '</span></span>' + L.icon('chevR', 'chev') + '</button>';
+    }
     var label = e.kind === 'deadline'
       ? (p.option.type === 'survey' ? 'アンケートの回答期限' : '面談の予約期限') + '　' + L.fmt.hm(p.option.deadline)
       : (p.eventEndDate && p.eventEndDate !== p.eventDate ? L.fmt.ymdLabel(p.eventDate) + ' 〜 ' + L.fmt.ymdLabel(p.eventEndDate) : '行事');
