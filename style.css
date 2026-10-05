@@ -573,3 +573,14 @@ body.wide .page { animation: none; }
 .login-or { display: flex; align-items: center; gap: 10px; margin: 22px 4px 12px; color: var(--label-3); font-size: .85rem; }
 .login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .gsi-wrap { display: flex; justify-content: center; min-height: 44px; }
+
+/* サイドバーのロゴ: 校章＋学校名の下に、アプリ名を1行で大きく */
+.sb-brand { display: block; padding: 4px 6px 18px; min-height: 0; }
+.sb-brand .sb-crest { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sb-brand .sb-crest img { width: 40px; height: 42px; }
+.sb-brand .sb-school { font-size: .78rem; color: var(--label-2); line-height: 1.3; }
+.sb-brand b.wordmark { display: block; white-space: nowrap; font-size: 1.85rem; line-height: 1.1; letter-spacing: -.02em; color: var(--tint); font-weight: 800; }
+.sb-brand b.wordmark .w1, .sb-brand b.wordmark .w2 { display: inline; font-size: inherit; letter-spacing: inherit; text-transform: none; color: inherit; font-weight: inherit; }
+.sb-brand b.wordmark .w1 { margin-right: .22em; }
+.shell.sb-collapsed .sb-brand b.wordmark, .shell.sb-collapsed .sb-brand .sb-school { display: none; }
+.shell.sb-collapsed .sb-brand .sb-crest { margin: 0; justify-content: center; }
