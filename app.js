@@ -434,10 +434,6 @@
     var h = '<aside class="sidebar" aria-label="メニュー">' +
       '<div class="sb-brand"><img src="icons/crest.png" alt=""><div class="t"><b class="wordmark">' + wordmark() + '</b>' + (school ? '<span>' + esc(school) + '</span>' : '') + '</div></div>';
     if (S.role === 'teacher' && S.perm !== '閲覧のみ') h += '<button class="sb-primary" data-act="compose" title="新規投稿">' + L.icon('compose') + '<span>新規投稿</span></button>';
-    if (S.role === 'parent' && S.children.length > 1) {
-      h += '<button class="sb-item sb-who" data-act="switchChild" title="子どもを切り替える">' + L.icon('person') +
-        '<span class="sb-label">' + esc(S.child.name) + '<small>' + esc(L.fmt.cls(S.child)) + '</small></span>' + L.icon('chevD') + '</button><div class="sb-sep"></div>';
-    }
     h += '<div class="sb-head">メニュー</div>';
     navItems().forEach(function (it) {
       if (it.kind === 'compose') return;
@@ -445,9 +441,13 @@
       var on = !!(it.id && S.tab === it.id);
       h += '<button class="sb-item' + (on ? ' active' : '') + '"' + itemAttrs(it) + ' title="' + esc(it.label) + '">' + L.icon(it.icon, '', on) + '<span class="sb-label">' + esc(it.label) + '</span>' + badge + '</button>';
     });
-    h += '<div class="sb-sep"></div>' +
-      '<button class="sb-item sb-who" data-act="account" title="アカウント">' + L.icon('person') +
-      '<span class="sb-label">' + esc(S.name) + '<small>' + (S.role === 'teacher' ? '教員' : (S.child ? esc(L.fmt.cls(S.child)) : '')) + '</small></span></button>' +
+    var cp = (typeof CAREERPORT_URL !== 'undefined' && CAREERPORT_URL) || '';
+    if (/^https:\/\//.test(cp)) {
+      h += '<a class="sb-item" href="' + esc(cp) + '" target="_blank" rel="noopener" title="CareerPort を開く">' + L.icon('link') + '<span class="sb-label">CareerPort</span></a>';
+    }
+    var multi = S.role === 'parent' && S.children.length > 1;
+    h += '<button class="sb-item sb-who sb-account" data-act="' + (multi ? 'whoMenu' : 'account') + '" title="' + (multi ? 'アカウント・子どもの切り替え' : 'アカウント') + '">' + L.icon('person') +
+      '<span class="sb-label">' + esc(S.name) + '<small>' + (S.role === 'teacher' ? '教員' : (S.child ? esc(L.fmt.cls(S.child)) : '')) + '</small></span>' + (multi ? L.icon('chevD') : '') + '</button>' +
       '<button class="sb-item sb-who sb-toggle" data-act="toggleSidebar" title="サイドバーの表示を切り替える" aria-label="サイドバーの表示を切り替える">' +
       L.icon(collapsed ? 'panelOpen' : 'panelClose') + '<span class="sb-label">' + (collapsed ? '広げる' : '閉じる') + '</span></button></aside>';
     return h;
@@ -716,6 +716,16 @@
           onTap: function () { switchChild(c.id); }
         };
       })
+    });
+  };
+
+  // 左下の欄から開く: きょうだいの切り替えと、アカウント（ログアウトなど）
+  L.acts.whoMenu = function () {
+    L.ui.actions({
+      title: S.name,
+      items: S.children.map(function (c) {
+        return { label: c.name + '（' + L.fmt.cls(c) + '）', selected: c.id === S.child.id, onTap: function () { switchChild(c.id); } };
+      }).concat([{ label: 'アカウント・ログアウト', onTap: function () { L.acts.account(); } }])
     });
   };
 
