@@ -620,3 +620,9 @@ body.wide .page { animation: none; }
 .accent-btn { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 10px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-size: .88rem; color: var(--label); }
 .accent-btn i { width: 18px; height: 18px; border-radius: 50%; flex: none; }
 .accent-btn.on { box-shadow: inset 0 0 0 2px var(--tint); font-weight: 700; }
+
+/* 一部の学年だけ登校なしの日（先生の画面）は、薄めの色にする */
+.cal-day.off.part { background: color-mix(in srgb, var(--red) 5%, transparent); }
+.cal-day.off.part .num { color: var(--label); }
+.cal.big .cal-day.off.part { background: color-mix(in srgb, var(--red) 4%, var(--surface)); }
+.cal-day.off.part.sel .num { color: var(--on-tint); }
