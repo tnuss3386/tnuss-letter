@@ -432,7 +432,7 @@
     var school = (typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) || '';
     var collapsed = sidebarCollapsed();
     var h = '<aside class="sidebar" aria-label="メニュー">' +
-      '<div class="sb-brand"><div class="sb-crest"><img src="icons/crest.png" alt="">' + (school ? '<span class="sb-school">' + esc(school) + '</span>' : '') + '</div><b class="wordmark">' + wordmark() + '</b></div>';
+      '<div class="sb-brand"><img src="icons/crest.png" alt=""><div class="t"><b class="wordmark">' + wordmark() + '</b>' + (school ? '<span>' + esc(school) + '</span>' : '') + '</div></div>';
     if (S.role === 'teacher' && S.perm !== '閲覧のみ') h += '<button class="sb-primary" data-act="compose" title="新規投稿">' + L.icon('compose') + '<span>新規投稿</span></button>';
     h += '<div class="sb-head">メニュー</div>';
     navItems().forEach(function (it) {
