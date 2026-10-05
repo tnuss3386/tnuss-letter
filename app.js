@@ -44,6 +44,24 @@
   };
   L.token = function () { return L.store.get(TOKEN_KEY); };
 
+  // ---------- 配色（端末ごとに保存。アカウント画面で変える） ----------
+  var ACCENT_KEY = 'letterAccent';
+  var ACCENTS = [   // [key, 名前, 明るい画面の色, 暗い画面の色]
+    ['navy', '紺', '#0d2850', '#a9c4f2'], ['teal', 'ティール', '#0f6b6b', '#7fd0cf'], ['sage', 'セージ', '#2f6b4f', '#9fd3b2'],
+    ['violet', 'バイオレット', '#4a3f9e', '#c0b8f5'], ['coral', 'コーラル', '#b4472b', '#f5b3a1'], ['wine', 'ワイン', '#7a2236', '#f0a8b8']
+  ];
+  function rgb(hex) { return [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16); }).join(', '); }
+  function applyAccent(key) {
+    var el = document.getElementById('accentStyle');
+    var a = ACCENTS.filter(function (x) { return x[0] === key; })[0];
+    if (!a || a[0] === 'navy') { if (el) el.textContent = ''; return; }   // 紺は標準（style.css のまま）
+    if (!el) { el = document.createElement('style'); el.id = 'accentStyle'; document.head.appendChild(el); }
+    var l = rgb(a[2]), d = rgb(a[3]);
+    el.textContent = ':root{--tint:' + a[2] + ';--tint-soft:rgba(' + l + ',.09);--tint-mid:rgba(' + l + ',.16);--fill:rgba(' + l + ',.06);--fill-2:rgba(' + l + ',.12)}' +
+      '@media (prefers-color-scheme:dark){:root{--tint:' + a[3] + ';--on-tint:#10151c;--tint-soft:rgba(' + d + ',.14);--tint-mid:rgba(' + d + ',.24);--fill:rgba(' + d + ',.08);--fill-2:rgba(' + d + ',.16)}}';
+  }
+  applyAccent(L.store.get(ACCENT_KEY));
+
   L.api = function (action, params) {
     return fetch(GAS_URL, {
       method: 'POST',
@@ -157,6 +175,7 @@
       S.child = state.current;
       S.posts = state.posts || [];
       S.events = state.events || [];
+      S.holidays = state.holidays || [];
       S.curFy = state.fy || S.curFy;
       S.years = state.years || S.years;
       S.serverOffset = state.serverTime ? new Date(state.serverTime).getTime() - Date.now() : 0;
@@ -167,6 +186,7 @@
       S.senders = state.senders || [];
       S.perm = state.perm || 'poster';
       S.events = state.events || [];
+      S.holidays = state.holidays || [];
       S.defaultSender = state.defaultSender || '';
     }
   }
@@ -760,6 +780,12 @@
     } else if (st === 'denied') {
       body += '<div class="section"><div class="banner warn">' + L.icon('info') + '<div>通知がブロックされています。端末の設定で、このアプリの通知を許可してください。</div></div></div>';
     }
+    var curAccent = L.store.get(ACCENT_KEY) || 'navy';
+    body += '<div class="section"><div class="group-header">配色（この端末だけ）</div><div class="accent-row" id="accentRow" role="group" aria-label="配色">' +
+      ACCENTS.map(function (a) {
+        return '<button type="button" class="accent-btn' + (a[0] === curAccent ? ' on' : '') + '" data-accent="' + a[0] + '" aria-pressed="' + (a[0] === curAccent) + '" aria-label="' + esc(a[1]) + '">' +
+          '<i style="background:' + a[2] + '"></i><span>' + esc(a[1]) + '</span></button>';
+      }).join('') + '</div></div>';
     body += '<div class="section"><div class="group"><button class="row center destructive" id="logoutBtn">ログアウト</button></div></div>';
     var sheet = L.ui.sheet({ title: 'アカウント', right: { label: '完了', onTap: function (s) { s.close(); } }, body: body });
     var tg = sheet.el.querySelector('#pushToggle');
@@ -771,6 +797,13 @@
         if (res.ok) { L.ui.toast(tg.checked ? '通知をオンにしました' : '通知をオフにしました'); render(null, true); return; }
         tg.checked = false;
         L.ui.toast(res.reason === 'server' ? res.error : (res.reason === 'denied' || res.reason === 'default') ? '通知が許可されませんでした' : '通知の設定に失敗しました', true);
+      });
+    });
+    Array.prototype.forEach.call(sheet.el.querySelectorAll('.accent-btn'), function (b) {
+      b.addEventListener('click', function () {
+        var k = b.getAttribute('data-accent');
+        L.store.set(ACCENT_KEY, k); applyAccent(k);
+        Array.prototype.forEach.call(sheet.el.querySelectorAll('.accent-btn'), function (x) { var on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
       });
     });
     sheet.el.querySelector('#logoutBtn').addEventListener('click', function () {

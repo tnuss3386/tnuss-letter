@@ -33,6 +33,13 @@
     return map;
   }
 
+  /** { 'yyyy-MM-dd': 休業日の名前 } */
+  function holidayMap() {
+    var map = {};
+    (S.holidays || []).forEach(function (h) { map[h.date] = { label: h.label || '' }; });
+    return map;
+  }
+
   function monthGrid(y, m) {
     var first = new Date(Date.UTC(y, m - 1, 1));
     var startDow = first.getUTCDay();
@@ -49,8 +56,10 @@
     var head = '日月火水木金土'.split('').map(function (w, i) {
       return '<div class="cal-dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + w + '</div>';
     }).join('');
+    var hol = holidayMap();
     var cells = monthGrid(c.y, c.m).map(function (cell, i) {
       var evs = events[cell.ymd] || [];
+      var off = hol[cell.ymd];
       var colors = [];
       evs.forEach(function (e) {
         var col = e.kind === 'deadline' ? '#ff9500' : e.kind === 'sheet' ? SHEET_COLOR : L.catColor(e.post.category);
@@ -63,12 +72,12 @@
         var shown = evs.filter(function (e) { var t = e.kind === 'deadline' ? '〆 ' + e.post.title : e.post.title; if (seen[t]) return false; seen[t] = 1; e._t = t; return true; });
         chips = shown.slice(0, 3).map(function (e) {
           var col = e.kind === 'deadline' ? '#ff9500' : e.kind === 'sheet' ? SHEET_COLOR : L.catColor(e.post.category);
-          return '<span class="cal-chip" style="--c:' + col + '">' + esc(e._t) + '</span>';
+          return '<span class="cal-chip" style="--c:' + col + '" title="' + esc(e._t) + '">' + esc(e._t) + '</span>';
         }).join('') + (shown.length > 3 ? '<span class="cal-more">他 ' + (shown.length - 3) + ' 件</span>' : '');
       }
-      return '<button class="cal-day' + (cell.other ? ' other' : '') + (cell.ymd === today ? ' today' : '') + (cell.ymd === c.sel ? ' sel' : '') +
-        (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + '" data-act="calDay" data-ymd="' + cell.ymd + '" aria-label="' + esc(L.fmt.ymdLong(cell.ymd)) + (evs.length ? '、予定' + evs.length + '件' : '') + '">' +
-        '<span class="num">' + (+cell.ymd.split('-')[2]) + '</span><span class="cal-dots">' +
+      return '<button class="cal-day' + (cell.other ? ' other' : '') + (cell.ymd === today ? ' today' : '') + (cell.ymd === c.sel ? ' sel' : '') + (off ? ' off' : '') +
+        (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + '" data-act="calDay" data-ymd="' + cell.ymd + '" aria-label="' + esc(L.fmt.ymdLong(cell.ymd)) + (off ? '、' + (off.label || '休み') : '') + (evs.length ? '、予定' + evs.length + '件' : '') + '">' +
+        '<span class="num">' + (+cell.ymd.split('-')[2]) + '</span>' + (off && off.label && L.isWide() ? '<span class="cal-off">' + esc(off.label) + '</span>' : '') + '<span class="cal-dots">' +
         colors.map(function (col) { return '<i style="--c:' + col + '"></i>'; }).join('') + '</span>' + (chips ? '<span class="cal-chips">' + chips + '</span>' : '') + '</button>';
     }).join('');
     return '<div class="cal' + (L.isWide() ? ' big' : '') + '"><div class="cal-grid">' + head + cells + '</div></div>';
@@ -95,7 +104,9 @@
   function dayHtml(events) {
     var sel = S.cal.sel;
     var list = events[sel] || [];
+    var off = holidayMap()[sel];
     return '<div class="group-header">' + esc(L.fmt.ymdLong(sel)) + '</div>' +
+      (off ? '<div class="cal-offnote">' + esc(off.label || '休み') + '</div>' : '') +
       (list.length
         ? '<div class="group">' + list.map(eventRow).join('') + '</div>'
         : '<div class="group"><div class="row-wrap" style="color:var(--label-2)">予定はありません</div></div>');
