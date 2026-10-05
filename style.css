@@ -575,3 +575,6 @@ body.wide .page { animation: none; }
 .login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .gsi-wrap { display: flex; justify-content: center; min-height: 44px; }
 
+
+/* ログイン画面の案内文: 広い画面では改行せず1行に（スマホは今まで通り） */
+@media (min-width: 600px) { .login p.lead br.sp { display: none; } .login p.lead { white-space: nowrap; } }

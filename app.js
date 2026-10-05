@@ -293,10 +293,10 @@
       ((typeof APP_TAGLINE !== 'undefined' && APP_TAGLINE) ? '<p class="tagline">' + esc(APP_TAGLINE) + '</p>' : '') +
       ((typeof SCHOOL_NAME !== 'undefined' && SCHOOL_NAME) ? '<p class="sub">' + esc(SCHOOL_NAME) + '</p>' : '') +
       (tl
-        ? '<p class="lead">教員の方は、学校の Google アカウントで<br>ログインしてください</p>' +
+        ? '<p class="lead">教員の方は、学校の Google アカウントで<br class="sp">ログインしてください</p>' +
           '<div id="gsiBtn" class="gsi-wrap" aria-label="Google でログイン"></div>' +
           '<div class="error-text hidden" id="loginError" style="text-align:left;margin:12px 4px 0"></div>'
-        : '<p class="lead">発行されたIDとパスワードで<br>ログインしてください</p>' +
+        : '<p class="lead">発行されたIDとパスワードで<br class="sp">ログインしてください</p>' +
           '<div class="group"><div class="field"><label for="loginId">ID</label>' +
           '<input id="loginId" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ログインID（学籍番号）"></div>' +
           '<div class="field" style="position:relative"><label for="loginPw">パスワード</label>' +
