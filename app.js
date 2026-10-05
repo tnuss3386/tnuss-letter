@@ -478,6 +478,7 @@
     iv: ['interview', '面談を選んでください', '左の一覧から選ぶと、予約できます。']
   };
   function emptyDetail() {
+    if (S.tab === 'cal' && isWide() && L.calDayPane) return '<div class="detail-inner">' + L.calDayPane() + '</div>';   // 予定: 広い画面では、右の枠に選んだ日の予定を出す
     var e = TAB_EMPTY[S.tab] || TAB_EMPTY.home;
     return '<div class="empty-detail">' + L.icon(e[0]) + '<b>' + esc(e[1]) + '</b><span>' + esc(e[2]) + '</span></div>';
   }
@@ -510,7 +511,7 @@
     } else {
       vl = (L.views[S.tab] || L.views.home)();
       vd = S.detail ? L.views.detail(S.detail) : null;
-      main = '<section class="pane pane-list"><header class="pane-head"><h1>' + esc(vl.nav.title) + '</h1></header>' +
+      main = '<section class="pane pane-list' + (S.tab === 'cal' ? ' cal-list' : '') + '"><header class="pane-head"><h1>' + esc(vl.nav.title) + '</h1></header>' +
         '<div class="pane-body" id="paneList">' + offline + vl.html + '</div></section>' +
         '<section class="pane pane-detail"><div class="pane-body" id="paneDetail">' + (vd ? '<div class="detail-inner">' + vd.html + '</div>' : emptyDetail()) + '</div></section>';
     }
@@ -553,6 +554,7 @@
     updateScrolled();
   }
   L.render = render;
+  L.renderDetail = renderDetailPane;
 
   /** 未読数などが変わったとき、メニュー（スマホ）／サイドバー（PC）だけを更新する */
   L.refreshChrome = function () {

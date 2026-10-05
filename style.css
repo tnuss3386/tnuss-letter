@@ -583,3 +583,19 @@ body.wide .page { animation: none; }
 
 /* 読み込み中: 画面の中央で、くるくる回る表示 */
 .page-loading { display: flex; justify-content: center; padding: 30vh 0 0; }
+
+/* 予定（広い画面）: 月の表を大きく広げて、日ごとに予定の名前を出す。右の枠は、選んだ日の予定 */
+.pane-list.cal-list { width: auto; flex: 1; min-width: 0; border-right: 0; }
+.pane-list.cal-list + .pane-detail { flex: none; width: 360px; border-left: 1px solid var(--line); }
+.cal.big .cal-grid { border-top: 1px solid var(--line); border-left: 1px solid var(--line); background: var(--surface); }
+.cal.big .cal-dow { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 0; }
+.cal.big .cal-day { height: auto; min-height: 104px; align-items: stretch; justify-content: flex-start; gap: 4px; padding: 6px 6px 8px; border-radius: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; }
+.cal.big .cal-day:hover { background: var(--fill); }
+.cal.big .cal-day:hover .num { background: transparent; }
+.cal.big .cal-day.sel { background: var(--tint-soft); }
+.cal.big .cal-day.sel .num { background: var(--tint); }
+.cal.big .cal-day .num { align-self: flex-start; width: 28px; height: 28px; line-height: 28px; font-size: .9rem; }
+.cal.big .cal-dots { display: none; }
+.cal-chips { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-chip { display: block; font-size: .72rem; line-height: 1.35; padding: 1px 6px; border-radius: 4px; background: color-mix(in srgb, var(--c, var(--tint)) 16%, transparent); color: var(--label); border-left: 3px solid var(--c, var(--tint)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-more { font-size: .7rem; color: var(--label-2); padding-left: 4px; }
