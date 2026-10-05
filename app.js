@@ -111,6 +111,7 @@
     })).then(function (state) {
       S.lastFetch = Date.now();
       setOffline(false);
+      if (state.token) { L.store.set(TOKEN_KEY, state.token); delete state.token; }   // 期限が延びた新しいログイン状態に置き換える
       if (state.role === 'guest') {
         var fresh = L.justLoggedIn; L.justLoggedIn = false;
         clearSession(); showLogin();
