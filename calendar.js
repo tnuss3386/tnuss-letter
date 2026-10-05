@@ -43,7 +43,17 @@
   /** 「登校なし」の表示。一部の学年だけ（先生の画面）のときは、「1・2学年は登校なし」 */
   function offText(off) {
     if (off.grades) return off.grades.join('・') + '学年は登校なし';
-    return off.label || '登校なし';
+    return off.label || '全学年登校なし';
+  }
+
+  /** 一部だけ登校なし（薄い色）か。保護者は、いま選んでいる子どもの学年が含まれていれば、濃い色 */
+  function isPart(off) {
+    if (!off.grades) return false;
+    if (S.role === 'parent' && S.child) {
+      var m = String(S.child.grade || '').replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).match(/\d+/);
+      if (m && off.grades.indexOf(+m[0]) !== -1) return false;
+    }
+    return true;
   }
 
   function monthGrid(y, m) {
@@ -81,7 +91,7 @@
           return '<span class="cal-chip" style="--c:' + col + '" title="' + esc(e._t) + '">' + esc(e._t) + '</span>';
         }).join('') + (shown.length > 3 ? '<span class="cal-more">他 ' + (shown.length - 3) + ' 件</span>' : '');
       }
-      return '<button class="cal-day' + (cell.other ? ' other' : '') + (cell.ymd === today ? ' today' : '') + (cell.ymd === c.sel ? ' sel' : '') + (off ? (off.grades ? ' off part' : ' off') : '') +
+      return '<button class="cal-day' + (cell.other ? ' other' : '') + (cell.ymd === today ? ' today' : '') + (cell.ymd === c.sel ? ' sel' : '') + (off ? (isPart(off) ? ' off part' : ' off') : '') +
         (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '') + '" data-act="calDay" data-ymd="' + cell.ymd + '" aria-label="' + esc(L.fmt.ymdLong(cell.ymd)) + (off ? '、' + offText(off) : '') + (evs.length ? '、予定' + evs.length + '件' : '') + '">' +
         '<span class="num">' + (+cell.ymd.split('-')[2]) + '</span>' + (off && (off.label || off.grades) && L.isWide() ? '<span class="cal-off">' + esc(off.grades ? off.grades.join('・') + '学年 登校なし' : off.label) + '</span>' : '') + '<span class="cal-dots">' +
         colors.map(function (col) { return '<i style="--c:' + col + '"></i>'; }).join('') + '</span>' + (chips ? '<span class="cal-chips">' + chips + '</span>' : '') + '</button>';
