@@ -182,6 +182,7 @@
     } else {
       S.grades = state.grades || [];
       S.classes = state.classes || [];
+      S.buses = state.buses || [];
       S.students = state.students || [];
       S.senders = state.senders || [];
       S.perm = state.perm || 'poster';

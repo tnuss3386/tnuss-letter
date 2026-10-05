@@ -188,7 +188,7 @@
       body: p ? p.body : '',
       att: p ? p.attachments.slice() : [],
       files: [],
-      tmode: 'ALL', grades: {}, classes: {}, students: {}, pick: '',
+      tmode: 'ALL', grades: {}, classes: {}, buses: {}, students: {}, pick: '',
       eventOn: !!(p && p.eventDate), eventDate: p ? p.eventDate : '', eventEnd: p ? p.eventEndDate : '',
       pubMode: p && p.scheduled ? 'later' : 'now', pubAt: p && p.scheduled ? L.jst.toLocalInput(p.date) : '',
       option: 'none',
@@ -207,6 +207,7 @@
         tokens.forEach(function (t) {
           if (t.indexOf('G:') === 0) C.grades[t.slice(2)] = true;
           else if (t.indexOf('C:') === 0) C.classes[t.slice(2)] = true;
+          else if (t.indexOf('B:') === 0) C.buses[t.slice(2)] = true;
           else if (t.indexOf('S:') === 0) { C.tmode = 'STUDENT'; C.students[t.slice(2)] = true; }
         });
       }
@@ -308,7 +309,7 @@
     }
     function secTarget() {
       var h = '<div class="section"><div class="group-header">配信対象</div>' +
-        seg('tmode', [['ALL', '全体'], ['SELECT', '学年・クラス'], ['STUDENT', '個人']], C.tmode) + '<div style="height:10px"></div>';
+        seg('tmode', [['ALL', '全体'], ['SELECT', '学年・クラス・バス'], ['STUDENT', '個人']], C.tmode) + '<div style="height:10px"></div>';
       if (C.tmode === 'ALL') {
         h += '<div class="group-footer" style="margin-top:0">すべての家庭に配信します。</div>';
       } else if (C.tmode === 'SELECT') {
@@ -322,7 +323,13 @@
             h += opt(esc(L.fmt.klass(c.klass)), gOn || !!C.classes[key], 'data-class="' + esc(key) + '"' + (gOn ? ' disabled' : ''), 'padding-left:44px;' + (gOn ? 'opacity:.55' : ''));
           });
         });
-        h += '</div><div class="group-footer">' + targetSummary() + '　<button type="button" class="link-btn" data-clear="select">すべて解除</button></div>';
+        h += '</div>';
+        if ((S.buses || []).length) {   // スクールバスのコース別（学年・クラスと組み合わせても、どれかに当てはまる家庭に届く）
+          h += '<div class="group-header" style="margin-top:14px">スクールバスのコース</div><div class="group">';
+          S.buses.forEach(function (b) { h += opt('<b>' + esc(b) + '</b>', !!C.buses[b], 'data-bus="' + esc(b) + '"'); });
+          h += '</div>';
+        }
+        h += '<div class="group-footer">' + targetSummary() + '　<button type="button" class="link-btn" data-clear="select">すべて解除</button></div>';
       } else {
         var q = C.pick.trim().toLowerCase();
         var list = S.students.filter(function (s) { return !q || (s.name + s.grade + s.klass).toLowerCase().indexOf(q) !== -1; });
@@ -337,8 +344,8 @@
     function targetSummary() {
       var gs = Object.keys(C.grades);
       var cs = Object.keys(C.classes).filter(function (k) { return !C.grades[k.split('|')[0]]; });
-      var parts = gs.map(L.fmt.grade).concat(cs.map(function (k) { var a = k.split('|'); return L.fmt.grade(a[0]) + L.fmt.klass(a[1]); }));
-      return parts.length ? '選択中：' + esc(parts.join('、')) : '学年やクラスを選んでください';
+      var parts = gs.map(L.fmt.grade).concat(cs.map(function (k) { var a = k.split('|'); return L.fmt.grade(a[0]) + L.fmt.klass(a[1]); })).concat(Object.keys(C.buses).map(function (b) { return 'バス ' + b; }));
+      return parts.length ? '選択中：' + esc(parts.join('、')) : '学年・クラス・バスのコースを選んでください';
     }
     function secWhen() {
       var h = '<div class="section"><div class="group-header">日付・公開</div><div class="group">' +
@@ -485,6 +492,11 @@
         if (C.classes[k]) delete C.classes[k]; else C.classes[k] = true;
         C.dirty = true; drawSec('target'); return;
       }
+      if ((el = e.target.closest('[data-bus]'))) {
+        var bk = el.getAttribute('data-bus');
+        if (C.buses[bk]) delete C.buses[bk]; else C.buses[bk] = true;
+        C.dirty = true; drawSec('target'); return;
+      }
       if ((el = e.target.closest('[data-stu]'))) {
         var id = el.getAttribute('data-stu');
         if (C.students[id]) delete C.students[id]; else C.students[id] = true;
@@ -495,7 +507,7 @@
         return;
       }
       if ((el = e.target.closest('[data-clear]'))) {
-        if (el.getAttribute('data-clear') === 'select') { C.grades = {}; C.classes = {}; } else C.students = {};
+        if (el.getAttribute('data-clear') === 'select') { C.grades = {}; C.classes = {}; C.buses = {}; } else C.students = {};
         drawSec('target'); return;
       }
       if ((el = e.target.closest('[data-rm-att]'))) { C.att.splice(+el.getAttribute('data-rm-att'), 1); C.dirty = true; drawSec('attach'); return; }
@@ -570,8 +582,9 @@
         payload.targetType = 'STUDENT'; payload.targetValue = ids.join(',');
       } else {
         var tokens = Object.keys(C.grades).map(function (g) { return 'G:' + g; })
-          .concat(Object.keys(C.classes).filter(function (k) { return !C.grades[k.split('|')[0]]; }).map(function (k) { return 'C:' + k; }));
-        if (!tokens.length) return fail('配信する学年・クラスを選んでください');
+          .concat(Object.keys(C.classes).filter(function (k) { return !C.grades[k.split('|')[0]]; }).map(function (k) { return 'C:' + k; }))
+          .concat(Object.keys(C.buses).map(function (b) { return 'B:' + b; }));
+        if (!tokens.length) return fail('配信する学年・クラス・バスのコースを選んでください');
         payload.targetType = 'SELECT'; payload.targetValue = tokens.join(',');
       }
       if (C.eventOn) {
