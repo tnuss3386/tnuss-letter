@@ -95,7 +95,7 @@
       : '';
     if (st.studentTarget !== undefined) {
       h += '<div class="group-header"' + (parentsToo ? ' style="margin-top:20px"' : '') + '>既読（生徒）</div><div class="group">' + progress(st.studentRead, st.studentTarget) + nameList(st.studentUnread, '未読の生徒') + '</div>' +
-        '<div class="group-footer">生徒は CareerPort アプリで開くと既読になります。生徒向けの緊急連絡は、生徒の学校メールにも送られます。</div>';
+        '<div class="group-footer">生徒は CareerPort アプリで開くと既読になります。生徒向けの緊急連絡は、CareerPort の画面上部にも表示されます。</div>';
     }
     var pending = parentsToo ? st.unread.length : 0, pendingLabel = '未読';
 
@@ -134,20 +134,20 @@
     if (pending > 0) {
       h += '<div class="btn-wrap" style="margin-top:20px"><button class="btn tinted" data-act="remind" data-id="' + esc(p.id) + '" data-n="' + pending + '" data-label="' + pendingLabel + '">' +
         L.icon('bell') + pendingLabel + 'の' + pending + '件に通知する</button></div>' +
-        '<div class="group-footer" style="margin:-14px 20px 24px">メールと、プッシュ通知（オンにしている方）でお知らせします。続けて送れるのは6時間おきです。</div>';
+        '<div class="group-footer" style="margin:-14px 20px 24px">プッシュ通知（オンにしている方）でお知らせします。続けて送れるのは6時間おきです。</div>';
     }
     return h;
   }
 
   L.acts.remind = function (el) {
     var id = el.getAttribute('data-id'), n = el.getAttribute('data-n'), label = el.getAttribute('data-label');
-    L.ui.confirm({ title: label + 'の' + n + '件に通知しますか？', message: 'メールとプッシュ通知で、確認のお願いを送ります。', confirm: '通知する' }).then(function (ok) {
+    L.ui.confirm({ title: label + 'の' + n + '件に通知しますか？', message: 'プッシュ通知で、確認のお願いを送ります（通知をオンにしている家庭のみ）。', confirm: '通知する' }).then(function (ok) {
       if (!ok) return;
       el.disabled = true;
       L.api('remindPost', { token: L.token(), postId: id }).then(function (res) {
         el.disabled = false;
         if (!res.ok) { L.ui.toast(res.error, true); return; }
-        L.ui.toast('通知しました（メール ' + res.mailed + '件・プッシュ ' + res.pushed + '台）');
+        L.ui.toast('通知しました（プッシュ ' + res.pushed + '台' + (res.mailed ? '・メール ' + res.mailed + '件' : '') + '）');
         L.refresh();
       }).catch(function () { el.disabled = false; L.ui.toast('通信できませんでした', true); });
     });
@@ -282,7 +282,7 @@
     }
     function secUrgent() {
       if (C.category !== '緊急' || C.editing) return '';
-      return '<div class="section"><div class="banner warn">' + L.icon('bolt') + '<div><b>「緊急」は、すぐにお知らせします。</b><br>公開と同時に、対象の家庭へメールとプッシュ通知を送ります。予約投稿の場合は、公開後の数分以内に送ります。</div></div>' +
+      return '<div class="section"><div class="banner warn">' + L.icon('bolt') + '<div><b>「緊急」は、すぐにお知らせします。</b><br>公開と同時に、対象の家庭へプッシュ通知を送ります（メールは送りません。通知をオンにしている家庭に届きます）。予約投稿の場合は、公開後の数分以内に送ります。</div></div>' +
         '<div class="group"><label class="row"><span class="row-label">すぐに通知する</span>' + sw('notifyNow', C.notifyNow) + '</label></div></div>';
     }
     function secBody() {
