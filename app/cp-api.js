@@ -34,15 +34,20 @@
 
      以後の通信で、body に { sessionToken } を付ける。 */
   var SKEY = 'cp_session';
-  function storedSession() {
+  // 「保持」なら localStorage（アプリを閉じても残る）、そうでなければ sessionStorage（閉じると消える）。共用の端末では、保持のチェックを外す。
+  function readSession(st) {
     try {
-      var o = JSON.parse(sessionStorage.getItem(SKEY) || 'null');
+      var o = JSON.parse(st.getItem(SKEY) || "null");
       if (o && o.t && o.exp > Date.now() + 60 * 1000) return o.t;
     } catch (e) {}
     return null;
   }
-  function saveSession(t, sec) { try { sessionStorage.setItem(SKEY, JSON.stringify({ t: t, exp: Date.now() + (sec || 21600) * 1000 })); } catch (e) {} }
-  function clearSession() { try { sessionStorage.removeItem(SKEY); } catch (e) {} }
+  function storedSession() { return readSession(localStorage) || readSession(sessionStorage); }
+  function saveSession(t, sec, remember) {
+    var v = JSON.stringify({ t: t, exp: Date.now() + (sec || 21600) * 1000 });
+    try { (remember ? localStorage : sessionStorage).setItem(SKEY, v); (remember ? sessionStorage : localStorage).removeItem(SKEY); } catch (e) {}
+  }
+  function clearSession() { try { localStorage.removeItem(SKEY); } catch (e) {} try { sessionStorage.removeItem(SKEY); } catch (e) {} }
   function clearAll() { clearSession(); }
 
   function postJson(body) {
@@ -82,6 +87,7 @@
         (pw ? '<form id="cp-pwform" style="text-align:left;margin-top:10px"><p class="meta" style="margin:0 0 4px;text-align:center">学籍番号とパスワードでログイン</p>' +
           '<input id="cp-sid" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="学籍番号" style="' + inp + '">' +
           '<input id="cp-spw" type="password" autocomplete="current-password" placeholder="パスワード" style="' + inp + '">' +
+          '<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:#334155"><input id="cp-rem" type="checkbox" checked style="width:18px;height:18px">ログイン状態を保持する（自分のスマホだけ）</label>' +
           '<button id="cp-pwbtn" type="submit" style="width:100%;margin-top:12px;padding:12px;font-size:16px;font-weight:700;color:#fff;background:#0B2545;border:0;border-radius:999px">ログイン</button></form>' : '') +
         '<p id="cp-login-msg" style="color:#dc2626;font-size:13px;margin-top:12px"></p>');
       var msg = function (t) { var m = document.getElementById('cp-login-msg'); if (m) m.textContent = t; };
@@ -91,11 +97,12 @@
         ev.preventDefault();
         var sid = document.getElementById('cp-sid').value.trim(), spw = document.getElementById('cp-spw').value;
         var btn = document.getElementById('cp-pwbtn');
+        var remember = !!document.getElementById('cp-rem').checked;
         if (!sid || !spw) { msg('学籍番号とパスワードを入れてください。'); return; }
         btn.disabled = true; btn.textContent = '確認中…'; msg('');
-        postJson({ fn: 'passwordLogin', args: [sid, spw] }).then(function (j) {
+        postJson({ fn: 'passwordLogin', args: [sid, spw, remember] }).then(function (j) {
           if (j && j.ok && j.result && j.result.sessionToken) {
-            saveSession(j.result.sessionToken, j.result.expiresIn); hideOverlay(); resolve({ sessionToken: j.result.sessionToken });
+            saveSession(j.result.sessionToken, j.result.expiresIn, remember); hideOverlay(); resolve({ sessionToken: j.result.sessionToken });
           } else { msg(loginMessage((j && j.error) || '不明なエラー')); }
         }).catch(function (e) { msg(loginMessage(e)); }).then(function () {
           if (document.getElementById('cp-pwbtn')) { btn.disabled = false; btn.textContent = 'ログイン'; }
