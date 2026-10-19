@@ -1,6 +1,6 @@
 /* Service Worker: アプリ本体（HTML/CSS/JS/アイコン）をキャッシュして、起動を速く・圏外でも画面は開けるようにする。
    API(GAS)への通信はキャッシュしない（常に最新・本人確認のため）。 */
-const CACHE = 'cp-shell-v7';
+const CACHE = 'cp-shell-v8';
 const SHELL = ['./', 'index.html', 'cp-design.css', 'cp-ui.js', 'cp-config.js', 'cp-api.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 

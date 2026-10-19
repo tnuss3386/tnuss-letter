@@ -48,7 +48,32 @@
     try { (remember ? localStorage : sessionStorage).setItem(SKEY, v); (remember ? sessionStorage : localStorage).removeItem(SKEY); } catch (e) {}
   }
   function clearSession() { try { localStorage.removeItem(SKEY); } catch (e) {} try { sessionStorage.removeItem(SKEY); } catch (e) {} }
-  function clearAll() { clearSession(); }
+  function clearAll() { clearSession(); cacheClear(); }
+
+  /* ---------- 取得結果の保存（起動を速くする） ----------
+     前回の getInitialData の結果を端末に保存し、次の起動で先に画面を出す（裏で最新を取って差し替える）。
+     保存先は、ログイン状態と同じ場所（「保持」なら localStorage、そうでなければ sessionStorage）。生徒ごとのキーで分け、ログアウトで消す。 */
+  function sidOfSession() {
+    var s = storedSession(); if (!s) return '';
+    try { var p = s.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'); return atob(p + '==='.slice((p.length + 3) % 4)).split('|')[0]; } catch (e) { return ''; }
+  }
+  function cacheStore() { return readSession(localStorage) ? localStorage : sessionStorage; }
+  function cacheClear() {
+    [localStorage, sessionStorage].forEach(function (st) {
+      try { Object.keys(st).filter(function (k) { return k.indexOf('cp_c1_') === 0; }).forEach(function (k) { st.removeItem(k); }); } catch (e) {}
+    });
+  }
+  window.CP_CACHE = {
+    read: function (name) {
+      var sid = sidOfSession(); if (!sid) return null;
+      try { var o = JSON.parse(cacheStore().getItem('cp_c1_' + sid + '_' + name) || 'null'); return o && o.v ? o.v : null; } catch (e) { return null; }
+    },
+    write: function (name, v) {
+      var sid = sidOfSession(); if (!sid) return;
+      try { cacheStore().setItem('cp_c1_' + sid + '_' + name, JSON.stringify({ at: Date.now(), v: v })); } catch (e) {}   // 容量オーバーなどは無視（次回は通常どおり読み込む）
+    },
+    clear: cacheClear
+  };
 
   function postJson(body) {
     return fetch(C.API_URL, {

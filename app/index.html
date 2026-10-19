@@ -608,7 +608,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <!-- ══ 連絡（ベルから開く。下のタブには出さない） ══ -->
  <div id="tab-messages" class="tab-pane">
  <div class="card">
- <div class="card-title"><span class="material-symbols-rounded">notifications</span>連絡<span class="cp-tabbadge" id="msg-tab-badge" hidden></span></div>
+ <div class="card-title"><span class="material-symbols-rounded">notifications</span>お知らせ<span class="cp-tabbadge" id="msg-tab-badge" hidden></span></div>
  <div id="msg-mount"></div>
  </div>
  </div>
@@ -1240,9 +1240,25 @@ function renderSharedFeed(entries, stats){
 }
 
 /* ════════════ INIT ════════════ */
+/* 起動: 前回の取得結果（端末に保存。CP_CACHE は GitHub Pages 版の cp-api.js が提供）があれば、先にそれで画面を出し、
+   裏で最新を取って、変わっていれば描画し直す。保存が無い・GAS 版では、従来どおり（最初の通信を待つ）。 */
 async function init(){
+ var cached=null, shown=false;
+ try{ cached=window.CP_CACHE?CP_CACHE.read('getInitialData'):null; }catch(e){}
+ if(cached && !cached.error && cached.user && cached.user.role==='student'){ shown=await initApply(cached); }
+ var fresh;
+ try{ fresh=await api('getInitialData'); }
+ catch(e){ if(shown) return; fresh={error:String((e&&e.message)||e)}; }
+ if(shown && fresh && fresh.error) return;   // 先に出した画面を、エラーで消さない
+ try{ if(window.CP_CACHE && fresh && !fresh.error) CP_CACHE.write('getInitialData',fresh); }catch(e){}
+ var changed=!shown || JSON.stringify(fresh)!==JSON.stringify(cached);
+ var ok=shown;
+ if(changed) ok=await initApply(fresh);
+ if(ok) loadSharePreference();
+}
+async function initApply(data){
  try{
- INIT_DATA=await api('getInitialData');
+ INIT_DATA=data;
  if(INIT_DATA.error) throw new Error(INIT_DATA.error);
 
  ME=INIT_DATA.user;
@@ -1332,7 +1348,7 @@ async function init(){
  </div>`;
  return; // 以降の処理を中断
  }
- loadSharePreference();
+ return true;
 }
 
 /* ════════════ TAB SWITCH ════════════ */
@@ -1947,7 +1963,7 @@ function resetForm(prefix){
 init();
 </script>
 <meta charset="utf-8">
-<!-- TNUSS CareerPort 共通部品: 連絡の一覧（教員の「連絡」タブ／生徒の「連絡」タブで同じ見え方）
+<!-- TNUSS CareerPort 共通部品: お知らせの一覧（教員の「お知らせ」タブ／生徒の「お知らせ」タブで同じ見え方）
      使い方: body 終了タグの直前で include('cp-msglist')。
        var ml = cpMsgList.mount(要素, { onOpen: function (id, m) {}, onMarkAll: function () {}, showState: true });
        ml.set(items, { problem: '', loading: false, note: '' });
@@ -2072,15 +2088,15 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
         '<button type="button" class="cml-chip cp-keep" data-f="unread" aria-pressed="' + (filter === 'unread') + '">未読<span class="n">' + unread + '</span></button>' +
         (opts.onMarkAll && unread ? '<button type="button" class="btn-secondary cp-keep cml-all" data-all="1">すべて既読にする</button>' : '') + '</div>';
       if (opts.layout === 'mail') {
-        if (!items.length) { root.innerHTML = bar + '<div class="cml-empty">' + esc(extra.empty || '連絡はありません') + '</div>'; return; }
+        if (!items.length) { root.innerHTML = bar + '<div class="cml-empty">' + esc(extra.empty || 'お知らせはありません') + '</div>'; return; }
         var mlist = list.slice(0, LIMIT);
         var sel = items.filter(function (m) { return String(m.id) === String(selId); })[0] || null;
         var rows = mlist.map(function (m) {
           var imp = m.priority === 'important' || m.category === '緊急';
           return '<button type="button" class="cml-row cp-keep' + (m.read ? '' : ' unread') + '" data-mid="' + esc(m.id) + '" role="option" aria-selected="' + (sel && String(sel.id) === String(m.id)) + '"><span class="dot" aria-hidden="true"></span>' +
-            '<div class="r1"><b>' + esc(m.senderName || m.category || '連絡') + '</b><span>' + esc(shortWhen(m.createdAt)) + '</span></div>' +
+            '<div class="r1"><b>' + esc(m.senderName || m.category || 'お知らせ') + '</b><span>' + esc(shortWhen(m.createdAt)) + '</span></div>' +
             '<div class="r2">' + (imp ? '<span class="imp">重要</span>' : '') + esc(m.title) + '</div><div class="r3">' + esc(String(m.body || '').replace(/\s+/g, ' ').slice(0, 70)) + '</div></button>';
-        }).join('') || '<div class="cml-empty">該当する連絡はありません</div>';
+        }).join('') || '<div class="cml-empty">該当するお知らせはありません</div>';
         var det;
         if (sel) {
           var atts = (sel.attachments || []).map(safeUrl).filter(String);
@@ -2093,20 +2109,20 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
             '<div class="cml-mbody">' + esc(sel.body) + '</div>' +
             (sel.optionType ? '<div class="cml-warn" style="margin-top:12px">' + (sel.optionType === 'survey' ? 'アンケート' : '面談') + 'の回答・予約は、保護者の方が Bridge から行います。</div>' : '') +
             (atts.length ? '<div class="cml-atts" style="margin-top:14px">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span>添付 ' + (i + 1) + '</a>'; }).join('') + '</div>' : '');
-        } else det = '<div class="cml-mempty">左の一覧から、読みたい連絡を選んでください。</div>';
+        } else det = '<div class="cml-mempty">左の一覧から、読みたいお知らせを選んでください。</div>';
         var prevScroll = 0; var old = root.querySelector('.cml-mlist'); if (old) prevScroll = old.scrollTop;
-        root.innerHTML = bar + '<div class="cml-mail' + (sel ? ' has-sel' : '') + '"><div class="cml-mlist" role="listbox" aria-label="連絡の一覧">' + rows + '</div><div class="cml-mread">' + det + '</div></div>';
+        root.innerHTML = bar + '<div class="cml-mail' + (sel ? ' has-sel' : '') + '"><div class="cml-mlist" role="listbox" aria-label="お知らせの一覧">' + rows + '</div><div class="cml-mread">' + det + '</div></div>';
         var nl = root.querySelector('.cml-mlist'); if (nl) nl.scrollTop = prevScroll;
         return;
       }
       var body;
-      if (!items.length) body = '<div class="cml-empty">' + esc(extra.empty || '連絡はありません') + '</div>';
-      else if (!list.length) body = '<div class="cml-empty">未読の連絡はありません</div>';
+      if (!items.length) body = '<div class="cml-empty">' + esc(extra.empty || 'お知らせはありません') + '</div>';
+      else if (!list.length) body = '<div class="cml-empty">未読のお知らせはありません</div>';
       else {
         body = '<div class="cml-list">' + list.slice(0, shown).map(card).join('') + '</div>';
         if (list.length > shown) body += '<button type="button" class="btn-secondary cp-keep cml-more" data-more="1">もっと見る（残り ' + (list.length - shown) + ' 件）</button>';
       }
-      var foot = items.length >= LIMIT ? '<div class="cml-foot">新しい ' + LIMIT + ' 件までを表示しています。これより古い連絡は表示されません。</div>' : '';
+      var foot = items.length >= LIMIT ? '<div class="cml-foot">新しい ' + LIMIT + ' 件までを表示しています。これより古いお知らせは表示されません。</div>' : '';
       root.innerHTML = bar + body + foot;
     }
 
@@ -2144,7 +2160,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     return { set: function (list, ex) { items = list || []; extra = ex || {}; draw(); }, redraw: draw };
   }
 
-  /* 生徒の「連絡」タブ: cp-inbox（ベル）のデータを、同じ見え方でタブに出す。ベルを押すとこのタブが開く */
+  /* 生徒の「お知らせ」タブ: cp-inbox（ベル）のデータを、同じ見え方でタブに出す。ベルを押すとこのタブが開く */
   function bindStudent(root, o) {
     o = o || {};
     var ml = mount(root, { onOpen: function (id) { if (window.cpInboxApi) cpInboxApi.markRead(id); }, onMarkAll: function () { if (window.cpInboxApi) cpInboxApi.markAll(); }, showState: false, layout: 'mail' });
@@ -2172,7 +2188,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 })();
 </script>
 <meta charset="utf-8">
-<!-- TNUSS CareerPort 共通部品: 生徒の「連絡」受信箱（ベル + 未読バッジ + 一覧パネル）
+<!-- TNUSS CareerPort 共通部品: 生徒の「お知らせ」受信箱（ベル + 未読バッジ + 一覧パネル）
      使い方: 生徒向けページの body 終了タグの直前で include('cp-inbox') を読み込む（GAS のスクリプトレット）
      依存: cp-design（トークン）, google.script.run（GAS / PWA どちらでも可）
      ベルは ヘッダー右側（#hdr-user の親、または .user-meta）に自動で差し込む。 -->
@@ -2246,7 +2262,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
   function setBadge() {
     if (!badge) return;
     badge.hidden = unread <= 0; badge.textContent = unread > 99 ? '99+' : String(unread);
-    bell.setAttribute('aria-label', unread > 0 ? '連絡（未読 ' + unread + ' 件）' : '連絡');
+    bell.setAttribute('aria-label', unread > 0 ? 'お知らせ（未読 ' + unread + ' 件）' : 'お知らせ');
     try { if (navigator.setAppBadge) { unread > 0 ? navigator.setAppBadge(unread) : navigator.clearAppBadge(); } } catch (e) {}   // PWA: ホーム画面アイコンの数字
   }
 
@@ -2254,7 +2270,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     if (!list) return;
     if (problem) { list.innerHTML = '<div class="cp-in-empty" role="alert">' + esc(problem) + '</div>'; if (bell) bell.classList.add('problem'); return; }
     if (bell) bell.classList.remove('problem');
-    if (!items.length) { list.innerHTML = '<div class="cp-in-empty">連絡はありません</div>'; return; }
+    if (!items.length) { list.innerHTML = '<div class="cp-in-empty">お知らせはありません</div>'; return; }
     list.innerHTML = items.map(function (m) {
       var atts = (m.attachments || []).map(safeUrl).filter(String);
       var ev = m.eventDate ? ('📅 ' + m.eventDate.replace(/^(\d{4})-(\d{2})-(\d{2})$/, function (a, y, mo, d) { return Number(mo) + '/' + Number(d); }) +
@@ -2277,7 +2293,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     try { if (sessionStorage.getItem('cp_imp_seen') === '1') imp = 0; } catch (e) {}
     if (imp && !el) {
       el = document.createElement('div'); el.id = 'cp-imp-banner'; el.className = 'cp-notice warn';
-      el.innerHTML = '<span class="material-symbols-rounded">campaign</span><div class="cp-notice-body"><b>重要な連絡が ' + imp + ' 件あります</b></div><span class="cp-notice-act" style="padding:4px 12px;border:1px solid currentColor;border-radius:999px;font-weight:700">確認する</span>';
+      el.innerHTML = '<span class="material-symbols-rounded">campaign</span><div class="cp-notice-body"><b>重要なお知らせが ' + imp + ' 件あります</b></div><span class="cp-notice-act" style="padding:4px 12px;border:1px solid currentColor;border-radius:999px;font-weight:700">確認する</span>';
       el.onclick = function () { open(); };
       var host = document.querySelector('main') || document.body; host.insertBefore(el, host.firstChild);
     } else if (!imp && el) el.remove();
@@ -2288,18 +2304,18 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
       if (r && r.disabled) { if (bell) bell.style.display = 'none'; clearInterval(timer); return; }   // Bridge 未接続（設定なし）だけは、ベルを出さない
       problem = (r && r.problem) || '';   // 接続・登録の問題は、ベルを消さずに、中で理由を知らせる
       items = (r && r.messages) || []; unread = (r && r.unread) || 0;
-      if (!first && lastUnread !== null && unread > lastUnread) { toast('新しい連絡があります'); bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring'); }
+      if (!first && lastUnread !== null && unread > lastUnread) { toast('新しいお知らせがあります'); bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring'); }
       lastUnread = unread; setBadge(); render(); banner(); changed();
     }).catch(function (e) {
       // 生徒以外（教員の確認画面など）では出さない。それ以外の一時的な失敗では、ベルを消さずに、理由を出す
       if (/生徒として|ログインしてください/.test(String((e && e.message) || e))) { if (first && bell) bell.style.display = 'none'; return; }
-      problem = '連絡を読み込めませんでした。しばらくしてから、もう一度開いてください。'; items = []; unread = 0; setBadge(); render(); changed();
+      problem = 'お知らせを読み込めませんでした。しばらくしてから、もう一度開いてください。'; items = []; unread = 0; setBadge(); render(); changed();
     });
   }
 
   function changed() { try { if (window.cpInboxUpdated) cpInboxUpdated(); } catch (e) {} }
   function open() {
-    if (window.cpInboxTab) {                              // 連絡のタブがある画面では、ベルでそのタブを開く
+    if (window.cpInboxTab) {                              // お知らせのタブがある画面では、ベルでそのタブを開く
       try { sessionStorage.setItem('cp_imp_seen', '1'); } catch (e) {}
       var bn = document.getElementById('cp-imp-banner'); if (bn) bn.remove();
       window.cpInboxTab(); load(false); return;
@@ -2320,11 +2336,11 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
   function build() {
     var host = document.querySelector('#hdr-user'); host = host ? host.parentElement : (document.querySelector('header .user-meta') || document.querySelector('header .header-inner'));
     if (!host) return;
-    bell = document.createElement('button'); bell.className = 'cp-bell cp-keep'; bell.type = 'button'; bell.setAttribute('aria-label', '連絡');
+    bell = document.createElement('button'); bell.className = 'cp-bell cp-keep'; bell.type = 'button'; bell.setAttribute('aria-label', 'お知らせ');
     bell.innerHTML = '<span class="material-symbols-rounded">notifications</span><span class="cp-badge" hidden></span>';
     badge = bell.querySelector('.cp-badge'); host.insertBefore(bell, host.firstChild);
-    panel = document.createElement('div'); panel.id = 'cp-inbox'; panel.hidden = true; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', '連絡');
-    panel.innerHTML = '<div class="cp-in-back"></div><div class="cp-in-sheet"><div class="cp-in-head"><h3>連絡</h3><button type="button" class="cp-keep" id="cp-in-all">すべて既読</button><button type="button" class="cp-keep" id="cp-in-close" aria-label="閉じる"><span class="material-symbols-rounded">close</span></button></div><div class="cp-in-list" id="cp-in-list"></div></div>';
+    panel = document.createElement('div'); panel.id = 'cp-inbox'; panel.hidden = true; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-label', 'お知らせ');
+    panel.innerHTML = '<div class="cp-in-back"></div><div class="cp-in-sheet"><div class="cp-in-head"><h3>お知らせ</h3><button type="button" class="cp-keep" id="cp-in-all">すべて既読</button><button type="button" class="cp-keep" id="cp-in-close" aria-label="閉じる"><span class="material-symbols-rounded">close</span></button></div><div class="cp-in-list" id="cp-in-list"></div></div>';
     document.body.appendChild(panel); list = panel.querySelector('#cp-in-list');
     bell.onclick = open; panel.querySelector('.cp-in-back').onclick = close; panel.querySelector('#cp-in-close').onclick = close; panel.querySelector('#cp-in-all').onclick = markAll;
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) close(); });
@@ -2340,7 +2356,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     window.cpInboxApi = {
       get: function () { return { items: items, unread: unread, problem: problem }; },
       reload: function () { return load(false); },
-      markRead: function (id) { var m = items.filter(function (x) { return String(x.id) === String(id); })[0]; if (m && !m.read) { m.read = true; unread = Math.max(0, unread - 1); setBadge(); render(); banner(); changed(); } run('markMessageRead', [String(id)]).catch(function () {}); },   // changed(): 連絡タブのバッジ・サイドバー・トップのカードも更新する
+      markRead: function (id) { var m = items.filter(function (x) { return String(x.id) === String(id); })[0]; if (m && !m.read) { m.read = true; unread = Math.max(0, unread - 1); setBadge(); render(); banner(); changed(); } run('markMessageRead', [String(id)]).catch(function () {}); },   // changed(): お知らせタブのバッジ・サイドバー・トップのカードも更新する
       markAll: function () { markAll(); }
     };
     setTimeout(function () { load(true); }, 800);           // 起動直後の通信と競合しないよう少し遅らせる
