@@ -4,37 +4,15 @@
    画面側は今まで通り
        google.script.run.withSuccessHandler(ok).withFailureHandler(ng).関数名(引数...)
    と書いてあるだけ。ここでは同じ書き方のまま、中身を
-       fetch(API_URL, { fn, args, idToken })   ← Google ID トークン付きの POST
+       fetch(API_URL, { fn, args, sessionToken })   ← 学籍番号＋パスワードで得たセッションキー付きの POST
    に差し替える。画面コード（mobile-student の本体）には手を入れない。
-
-   ログイン: Google Identity Services（学校アカウント）。ID トークンは約1時間有効で、
-             期限が近づいたら自動で取り直す（失敗したらログイン画面を出す）。
+   ログイン: 学籍番号＋パスワード。サーバーが返すセッションキー（最長6時間）を sessionStorage に保存し、切れたらログイン画面を出す。
    ===================================================================== */
 (function () {
   'use strict';
   var C = window.CP_CONFIG || {};
-  var KEY = 'cp_idtoken';
   var waiting = null;          // 取得中のトークン Promise（同時に複数回ログインを出さない）
 
-  /* ---------- JWT ---------- */
-  function parseJwt(t) {
-    try {
-      var b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-      return JSON.parse(decodeURIComponent(atob(b).split('').map(function (c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join('')));
-    } catch (e) { return null; }
-  }
-  function stored() {
-    try {
-      var t = sessionStorage.getItem(KEY);
-      var p = t && parseJwt(t);
-      if (p && p.exp * 1000 > Date.now() + 90 * 1000) return t;   // 残り90秒以上
-    } catch (e) {}
-    return null;
-  }
-  function save(t) { try { sessionStorage.setItem(KEY, t); } catch (e) {} }
-  function clear() { try { sessionStorage.removeItem(KEY); } catch (e) {} }
 
   /* ---------- ログイン画面 ---------- */
   function overlay(html) {
@@ -50,72 +28,29 @@
   }
   function hideOverlay() { var el = document.getElementById('cp-login'); if (el) el.remove(); }
 
-  function loadGis() {
-    return new Promise(function (resolve, reject) {
-      if (window.google && window.google.accounts && window.google.accounts.id) return resolve();
-      var s = document.createElement('script');
-      s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.defer = true;
-      s.onload = resolve; s.onerror = function () { reject(new Error('Googleログインを読み込めませんでした。通信環境を確認してください。')); };
-      document.head.appendChild(s);
-    });
-  }
 
-  function login() {
-    if (!C.API_URL || !C.GOOGLE_CLIENT_ID) {
-      overlay('<h2 style="margin:6px 0">アプリの設定が未完了です</h2><p class="meta" style="margin-top:8px">cp-config.js の API_URL と GOOGLE_CLIENT_ID を設定してください。<br>手順: docs/PWA-API設計.md</p>');
-      return new Promise(function () {});          // 設定が済むまで先へ進めない
-    }
-    return loadGis().then(function () {
-      return new Promise(function (resolve) {
-        overlay('<h2 style="margin:6px 0;color:#0B2545">TNUSS CareerPort</h2><p class="meta" style="margin:6px 0 16px">学校のGoogleアカウントでログインしてください</p><div id="cp-gbtn" style="display:flex;justify-content:center"></div><p id="cp-login-msg" style="color:#dc2626;font-size:13px;margin-top:12px"></p>');
-        google.accounts.id.initialize({
-          client_id: C.GOOGLE_CLIENT_ID,
-          hd: C.ALLOWED_DOMAIN || undefined,       // 学校ドメインのアカウントだけを選択肢に出す
-          auto_select: true,
-          cancel_on_tap_outside: false,
-          callback: function (res) {
-            var p = parseJwt(res.credential);
-            if (!p || (C.ALLOWED_DOMAIN && String(p.email || '').toLowerCase().slice(-(C.ALLOWED_DOMAIN.length + 1)) !== '@' + C.ALLOWED_DOMAIN)) {
-              var m = document.getElementById('cp-login-msg');
-              if (m) m.textContent = '学校のアカウント（@' + C.ALLOWED_DOMAIN + '）でログインしてください。';
-              return;
-            }
-            save(res.credential); hideOverlay(); resolve(res.credential);
-          }
-        });
-        google.accounts.id.renderButton(document.getElementById('cp-gbtn'), { theme: 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'ja' });
-        google.accounts.id.prompt();               // 既にログイン済みなら自動で通る（One Tap）
-      });
-    });
-  }
+  /* ---------- 認証 ----------
+     A. 学籍番号＋パスワード → サーバーが「セッションキー」を返す（sessionStorage に保存。タブを閉じると消える）
 
-  function getToken(force) {
-    if (!force) { var t = stored(); if (t) return Promise.resolve(t); }
-    if (!waiting) waiting = login().then(function (t) { waiting = null; return t; }, function (e) { waiting = null; throw e; });
-    return waiting;
+     以後の通信で、body に { sessionToken } を付ける。 */
+  var SKEY = 'cp_session';
+  function storedSession() {
+    try {
+      var o = JSON.parse(sessionStorage.getItem(SKEY) || 'null');
+      if (o && o.t && o.exp > Date.now() + 60 * 1000) return o.t;
+    } catch (e) {}
+    return null;
   }
+  function saveSession(t, sec) { try { sessionStorage.setItem(SKEY, JSON.stringify({ t: t, exp: Date.now() + (sec || 21600) * 1000 })); } catch (e) {} }
+  function clearSession() { try { sessionStorage.removeItem(SKEY); } catch (e) {} }
+  function clearAll() { clearSession(); }
 
-  /* ---------- API 呼び出し ---------- */
-  // サーバーの返すエラーを、直し方が分かる文にする
-  function explain(e) {
-    var s = String(e);
-    if (s === 'API_DISABLED') return 'サーバー側で、アプリ用の API が有効になっていません。管理者に、スクリプトプロパティ API_CLIENT_ID の設定を依頼してください。';
-    if (s === 'UNAUTHORIZED') return 'ログイン情報を確認できませんでした。学校のアカウントでログインしているか、アプリとサーバーの OAuth クライアントID（cp-config.js の GOOGLE_CLIENT_ID と、サーバーの API_CLIENT_ID）が同じか、確認してください。';
-    if (s === 'UNKNOWN_FN') return 'このアプリは、まだこの操作に対応していません（サーバー側の code.gs が古い可能性があります）。';
-    if (/^Users未登録/.test(s)) return 'このアカウント（' + s.replace(/^Users未登録:\s*/, '') + '）は、名簿に登録されていません。担任の先生に伝えてください。';
-    if (/^Students未登録/.test(s)) return 'このアカウント（' + s.replace(/^Students未登録:\s*/, '') + '）は、生徒として登録されていません。このアプリは生徒用です（教員は、PC・スマホのブラウザで、通常のページをお使いください）。';
-    return s;
-  }
-  function call(fn, args, retried) {
-    // 設定が空のときは、保存済みトークンがあっても通信せず、設定案内を出して止める
-    if (!C.API_URL || !C.GOOGLE_CLIENT_ID) return login();
-    return getToken(retried).then(function (token) {
-      return fetch(C.API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // プリフライト(OPTIONS)を避ける。GAS は OPTIONS に対応しない
-        body: JSON.stringify({ fn: fn, args: args, idToken: token }),
-        redirect: 'follow'
-      });
+  function postJson(body) {
+    return fetch(C.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // プリフライト(OPTIONS)を避ける。GAS は OPTIONS に対応しない
+      body: JSON.stringify(body),
+      redirect: 'follow'
     }).then(function (r) {
       // 返事が JSON でないとき（Google の「アクセス権が必要です」のページなど）は、原因が分かる文にする
       return r.text().then(function (t) {
@@ -124,9 +59,82 @@
         if (/アクセス権|You need access|ログイン|Sign in|accounts\.google\.com/i.test(t) || r.status === 401 || r.status === 403) throw new Error('サーバー（API用のデプロイ）に入れません。Apps Script のデプロイの「アクセスできるユーザー」が「全員」になっているか、API_URL が「API用デプロイ」の URL か、確認してください。(' + r.status + ')');
         throw new Error('サーバーの返事を読み取れません (' + r.status + ')。API_URL が正しいか確認してください。');
       });
+    });
+  }
+
+  function loginMessage(e) {
+    var s = String(e && e.message || e);
+    if (s === 'LOGIN_FAILED') return '学籍番号またはパスワードが違います。';
+    if (s === 'LOCKED') return '失敗が続いたため、一時的に入れません。15分ほどたってから、もう一度お試しください。';
+    if (s === 'API_DISABLED') return 'パスワードでのログインは、まだ有効になっていません。先生に伝えてください。';
+    return s;
+  }
+
+  function login() {
+    if (!C.API_URL) {
+      overlay('<h2 style="margin:6px 0">アプリの設定が未完了です</h2><p class="meta" style="margin-top:8px">cp-config.js の API_URL を設定してください。<br>手順: docs/PWA-API設計.md</p>');
+      return new Promise(function () {});          // 設定が済むまで先へ進めない
+    }
+    return new Promise(function (resolve) {
+      var pw = C.PASSWORD_LOGIN !== false;
+      var inp = 'width:100%;box-sizing:border-box;padding:12px;font-size:16px;border:1px solid #cbd5e1;border-radius:10px;margin-top:8px;';
+      overlay('<h2 style="margin:6px 0;color:#0B2545">TNUSS CareerPort</h2>' +
+        (pw ? '<form id="cp-pwform" style="text-align:left;margin-top:10px"><p class="meta" style="margin:0 0 4px;text-align:center">学籍番号とパスワードでログイン</p>' +
+          '<input id="cp-sid" type="text" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="学籍番号" style="' + inp + '">' +
+          '<input id="cp-spw" type="password" autocomplete="current-password" placeholder="パスワード" style="' + inp + '">' +
+          '<button id="cp-pwbtn" type="submit" style="width:100%;margin-top:12px;padding:12px;font-size:16px;font-weight:700;color:#fff;background:#0B2545;border:0;border-radius:999px">ログイン</button></form>' : '') +
+        '<p id="cp-login-msg" style="color:#dc2626;font-size:13px;margin-top:12px"></p>');
+      var msg = function (t) { var m = document.getElementById('cp-login-msg'); if (m) m.textContent = t; };
+
+      var form = document.getElementById('cp-pwform');
+      if (form) form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var sid = document.getElementById('cp-sid').value.trim(), spw = document.getElementById('cp-spw').value;
+        var btn = document.getElementById('cp-pwbtn');
+        if (!sid || !spw) { msg('学籍番号とパスワードを入れてください。'); return; }
+        btn.disabled = true; btn.textContent = '確認中…'; msg('');
+        postJson({ fn: 'passwordLogin', args: [sid, spw] }).then(function (j) {
+          if (j && j.ok && j.result && j.result.sessionToken) {
+            saveSession(j.result.sessionToken, j.result.expiresIn); hideOverlay(); resolve({ sessionToken: j.result.sessionToken });
+          } else { msg(loginMessage((j && j.error) || '不明なエラー')); }
+        }).catch(function (e) { msg(loginMessage(e)); }).then(function () {
+          if (document.getElementById('cp-pwbtn')) { btn.disabled = false; btn.textContent = 'ログイン'; }
+          var f = document.getElementById('cp-spw'); if (f) f.value = '';
+        });
+      });
+
+
+    });
+  }
+
+  // 現在の認証情報 { sessionToken } を返す。無ければログイン画面を出す
+  function getAuth(force) {
+    if (!force) {
+      var s = storedSession(); if (s) return Promise.resolve({ sessionToken: s });
+    }
+    if (!waiting) waiting = login().then(function (a) { waiting = null; return a; }, function (e) { waiting = null; throw e; });
+    return waiting;
+  }
+
+  /* ---------- API 呼び出し ---------- */
+  // サーバーの返すエラーを、直し方が分かる文にする
+  function explain(e) {
+    var s = String(e);
+    if (s === 'API_DISABLED') return 'サーバー側で、アプリ用の API が有効になっていません。管理者に、スクリプトプロパティ API_CLIENT_ID（Googleログイン）または API_PASSWORD_LOGIN（パスワードログイン）の設定を依頼してください。';
+    if (s === 'UNAUTHORIZED') return 'ログインの有効期限が切れました。もう一度ログインしてください。';
+    if (s === 'UNKNOWN_FN') return 'このアプリは、まだこの操作に対応していません（サーバー側の code.gs が古い可能性があります）。';
+    if (/^Users未登録/.test(s)) return 'このアカウント（' + s.replace(/^Users未登録:\s*/, '') + '）は、名簿に登録されていません。担任の先生に伝えてください。';
+    if (/^Students未登録/.test(s)) return 'このアカウント（' + s.replace(/^Students未登録:\s*/, '') + '）は、生徒として登録されていません。このアプリは生徒用です（教員は、PC・スマホのブラウザで、通常のページをお使いください）。';
+    return s;
+  }
+  function call(fn, args, retried) {
+    // 設定が空のときは、保存済みの認証情報があっても通信せず、設定案内を出して止める
+    if (!C.API_URL) return login();
+    return getAuth(retried).then(function (auth) {
+      return postJson({ fn: fn, args: args, sessionToken: auth.sessionToken });
     }).then(function (j) {
       if (j && j.ok) return j.result;
-      if (j && j.error === 'UNAUTHORIZED' && !retried) { clear(); return call(fn, args, true); }   // 期限切れ → 取り直して1回だけ再試行
+      if (j && j.error === 'UNAUTHORIZED' && !retried) { clearAll(); return call(fn, args, true); }   // 期限切れ → ログインし直して1回だけ再試行
       throw new Error(explain((j && j.error) || '不明なエラー'));
     });
   }
@@ -162,5 +170,8 @@
   window.addEventListener('offline', function () { offlineBar(true); });
   document.addEventListener('DOMContentLoaded', function () { if (!navigator.onLine) offlineBar(true); });
 
-  window.CP_AUTH = { getToken: getToken, signOut: function () { clear(); try { google.accounts.id.disableAutoSelect(); } catch (e) {} location.reload(); } };
+  window.CP_AUTH = { signOut: function () {
+    var s = storedSession(), done = function () { clearAll(); location.reload(); };
+    if (s && C.API_URL) postJson({ fn: 'logout', args: [], sessionToken: s }).then(done, done); else done();   // サーバー側のセッションも無効にする
+  } };
 })();
