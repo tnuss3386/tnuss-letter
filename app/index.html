@@ -707,6 +707,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <div id="tab-inquiry" class="tab-pane">
  <!-- 探究のトップ（先生のコメント・フェーズ・e-learning・先輩の作品）: 開いたときに読み込む -->
  <div id="zemi-mount" style="margin-bottom:12px;"></div>
+ <div id="iq-cards" style="display:flex;flex-direction:column;gap:12px;">
  <div class="card">
  <div class="card-title"><span class="material-symbols-rounded" style="color:#fbbf24;">search</span>探究ログを記録</div>
  <div class="fg"><label>日付</label><input type="date" id="iq-date"></div>
@@ -745,6 +746,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  </div>
  <div id="iq-recent"><div class="skel" style="margin-bottom:8px;"></div><div class="skel" style="width:70%;"></div></div>
  </div>
+ </div><!-- /iq-cards -->
+ <script src="cp-config.js"></script>
+<script src="cp-api.js"></script>
+<script>/* ゼミの画面で「お知らせ」「e-learning」「先輩の作品」を開いている間は、探究ログの記録欄を隠す */
+ document.addEventListener('cz-tab',function(e){ var c=document.getElementById('iq-cards'); if(c) c.hidden=(e.detail!=='now'); });</script>
  </div>
 
  <!-- ══ TAB: 目標 ══ -->
@@ -1001,8 +1007,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <button class="nav-btn" id="nav-career" onclick="switchTab('career')"><span class="material-symbols-rounded">flag</span>進路・活動</button>
 </nav>
 
-<script src="cp-config.js"></script>
-<script src="cp-api.js"></script>
 <script>
 /* ════════════ STATE ════════════ */
 let ME = null;
@@ -2671,6 +2675,10 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 .cz .cz-tab:hover { background: var(--cp-tint-soft) !important; }
 .cz .cz-tab[aria-selected="true"] { color: var(--cp-ink) !important; border-bottom-color: var(--cp-navy) !important; background: var(--cp-tint-soft) !important; }
 .cz .cz-panel[hidden] { display: none; }
+.cz .cz-who { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--cp-tint-soft); }
+.cz .cz-who .k { font-size: 11px; font-weight: 700; color: var(--cp-text-2); letter-spacing: .3px; }
+.cz .cz-who .n { font-size: 22px; font-weight: 800; color: var(--cp-ink); line-height: 1.3; word-break: break-word; }
+.cz .cz-who .t { font-size: 12px; color: var(--cp-text-2); margin-top: 2px; }
 .cz .cz-hero .cz-phase { font-size: 24px; }
 .cz .cz-note { padding: 8px 0; border-bottom: 1px solid var(--cp-hover); }
 .cz .cz-note:last-child { border-bottom: 0; }
@@ -2721,25 +2729,27 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 
   // ───────── 探究のトップ ─────────
   function renderHome(h, root) {
-    var out = '', P = { now: '', note: '', el: '', works: '' };
+    var out = '', P = { now: '', note: '', el: '', works: '' }, member = !!(h.seminars && h.seminars.length);   // ゼミ未所属なら、フェーズ・先生のコメントは出さない
     var syl0 = (h.elearning && h.elearning.syllabus) || [], prog0 = (h.elearning && h.elearning.progress) || [];
     var done0 = prog0.filter(function (v) { return v === 1; }).length, pct0 = syl0.length ? Math.round(done0 / syl0.length * 100) : null;
     // まず「いまの探究」（フェーズ・進み具合・e-learning）を1枚にまとめて出し、そのあとに先生のコメント
     var phases = (h.phases && h.phases.length) ? h.phases : ['課題設定', '情報収集', '分析・考察', 'まとめ・発表', '振り返り'], curI = phases.indexOf(h.phase);
-    P.now += '<section><h2><span class="material-symbols-rounded">flag</span>いまの探究</h2><div class="cz-card cz-hero">' +
+    if (member) P.now += '<section><h2><span class="material-symbols-rounded">flag</span>いまの探究</h2><div class="cz-card cz-hero">' +
       '<div class="cz-phase">' + esc(h.phase || '（フェーズ未設定）') + '</div>' +
-      '<div class="cz-meta">' + (h.seminars && h.seminars.length ? esc(h.seminars.join('・')) : 'ゼミ未所属') + (h.teachers && h.teachers.length ? ' ／ 担当：' + esc(h.teachers.join('・')) + ' 先生' : '') + (h.status ? ' ／ ' + esc(h.status) : '') + '</div>' +
+      (h.status ? '<div class="cz-meta">' + esc(h.status) + '</div>' : '') +
       '<div class="cz-steps" role="list" aria-label="探究のフェーズ">' + phases.map(function (p, i) { return '<div class="cz-step' + (i <= curI ? ' on' : '') + (i === curI ? ' cur' : '') + '" role="listitem"' + (i === curI ? ' aria-current="step"' : '') + '>' + esc(p) + '</div>'; }).join('') + '</div>' +
       (h.progressPct != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究の進み具合</span><b>' + Math.round(h.progressPct) + '%</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + h.progressPct + '" aria-label="探究の進み具合" style="margin-top:4px"><i style="width:' + Math.max(0, Math.min(100, h.progressPct)) + '%"></i></div>' : '') +
       (pct0 != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究基礎 e-learning</span><b>' + done0 + ' / ' + syl0.length + '</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct0 + '" aria-label="e-learning の進み具合" style="margin-top:4px"><i style="width:' + pct0 + '%"></i></div>' : '') +
       '</div></section>';
-    if (h.feedback && h.feedback.comment) {
+    if (member && h.feedback && h.feedback.comment) {
       P.now += '<section><h2><span class="material-symbols-rounded">forum</span>先生からのコメント</h2><div class="cz-card cz-fb"><b>' + esc(h.feedback.teacherName || '担当') + ' 先生より' + (h.feedback.date ? '（' + esc(h.feedback.date) + ' 更新）' : '') + '</b><p>' + esc(h.feedback.comment) + '</p></div></section>';
     }
 
+    var NSHOW = 5;   // お知らせは5件ずつ表示し、「さらに表示」で続きを出す
     if (h.notices && h.notices.length) {
       P.note += '<section><h2><span class="material-symbols-rounded">info</span>学校・ゼミからのお知らせ</h2><div class="cz-card">' +
-        h.notices.slice(0, 5).map(function (n) { return '<div class="cz-note"><div class="d">' + esc(n.date) + ' ・ ' + esc(n.category) + '</div><div class="t">' + esc(n.title) + '</div><div class="c">' + esc(n.content) + '</div></div>'; }).join('') + '</div></section>';
+        h.notices.map(function (n, i) { return '<div class="cz-note"' + (i >= NSHOW ? ' hidden' : '') + '><div class="d">' + esc(n.date) + ' ・ ' + esc(n.category) + '</div><div class="t">' + esc(n.title) + '</div><div class="c">' + esc(n.content) + '</div></div>'; }).join('') + '</div>' +
+        (h.notices.length > NSHOW ? '<button type="button" class="btn-secondary cp-keep cz-more" style="width:100%;margin-top:10px">さらに表示（残り ' + (h.notices.length - NSHOW) + ' 件）</button>' : '') + '</section>';
     }
 
     var syl = (h.elearning && h.elearning.syllabus) || [], prog = (h.elearning && h.elearning.progress) || [];
@@ -2767,18 +2777,27 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
       '<div class="chips" id="cz-cats" role="group" aria-label="作品の種類">' + CATS.map(function (c, i) { return '<button type="button" class="chip-b cp-keep" data-cat="' + (i ? esc(c) : '') + '" aria-pressed="' + (i === 0) + '">' + esc(c) + '</button>'; }).join('') + '</div>' +
       '<div id="cz-results" aria-live="polite"><div class="cz-empty">キーワードか種類を選んで検索してください</div></div></div></div></section>';
     // 画面を4つのタブに分ける: いまの探究／お知らせ／e-learning／先輩の作品
-    var TABS = [['now', 'いまの探究', ''], ['note', 'お知らせ', (h.notices && h.notices.length) ? String(h.notices.length) : ''], ['el', 'e-learning', syl.length ? done + '/' + syl.length : ''], ['works', '先輩の作品', '']];
+    var TABS = [['now', member ? 'いまの探究' : '探究ログ', ''], ['note', 'お知らせ', (h.notices && h.notices.length) ? String(h.notices.length) : ''], ['el', 'e-learning', syl.length ? done + '/' + syl.length : ''], ['works', '先輩の作品', '']];
     var cur = 'now'; try { cur = sessionStorage.getItem('cz-tab') || 'now'; } catch (e) {}
+    if (!member && !P.now) P.now = '<!-- 記録欄は、この下に出る -->';
     if (!TABS.some(function (t) { return t[0] === cur; })) cur = 'now';
-    out = '<div class="cz-tabs" role="tablist" aria-label="探究・ゼミ">' + TABS.map(function (t) { return '<button type="button" role="tab" class="cz-tab cp-keep" data-t="' + t[0] + '" aria-selected="' + (t[0] === cur) + '">' + esc(t[1]) + (t[2] ? '<span class="n">' + esc(t[2]) + '</span>' : '') + '</button>'; }).join('') + '</div>' +
+    out = (member ? '<div class="cz-who"><div class="k">所属ゼミ</div><div class="n">' + esc(h.seminars.join('・')) + '</div>' + (h.teachers && h.teachers.length ? '<div class="t">担当：' + esc(h.teachers.join('・')) + ' 先生</div>' : '') + '</div>' : '') +
+      '<div class="cz-tabs" role="tablist" aria-label="探究・ゼミ">' + TABS.map(function (t) { return '<button type="button" role="tab" class="cz-tab cp-keep" data-t="' + t[0] + '" aria-selected="' + (t[0] === cur) + '">' + esc(t[1]) + (t[2] ? '<span class="n">' + esc(t[2]) + '</span>' : '') + '</button>'; }).join('') + '</div>' +
       TABS.map(function (t) { return '<div class="cz-panel" role="tabpanel" data-p="' + t[0] + '"' + (t[0] === cur ? '' : ' hidden') + '>' + (P[t[0]] || '<div class="cz-empty" style="padding:24px 0;text-align:center">まだ表示するものがありません。</div>') + '</div>'; }).join('');
     root.innerHTML = '<div class="cz">' + out + '</div>';
+    root.addEventListener('click', function (e) {
+      var mo = e.target.closest('.cz-more'); if (!mo) return;
+      var hid = root.querySelectorAll('.cz-note[hidden]'); for (var k = 0; k < hid.length && k < NSHOW; k++) hid[k].hidden = false;
+      var left = root.querySelectorAll('.cz-note[hidden]').length; if (left) mo.textContent = 'さらに表示（残り ' + left + ' 件）'; else mo.remove();
+    });
     root.querySelector('.cz-tabs').addEventListener('click', function (e) {
       var b = e.target.closest('.cz-tab'); if (!b) return; var t = b.getAttribute('data-t');
       root.querySelectorAll('.cz-tab').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
       root.querySelectorAll('.cz-panel').forEach(function (x) { x.hidden = x.getAttribute('data-p') !== t; });
       try { sessionStorage.setItem('cz-tab', t); } catch (er) {}
+      document.dispatchEvent(new CustomEvent('cz-tab', { detail: t }));
     });
+    document.dispatchEvent(new CustomEvent('cz-tab', { detail: cur }));
 
     bindWorks(root);
   }
