@@ -1420,14 +1420,14 @@ function setHeaderWho(){
   const st=STUDENT||{}, nm=String(st.name||ME&&ME.displayName||ME&&ME.email||'');
   const cls=st.grade?`${st.grade}年${st.class?st.class+'組':''}`:'';
   const el=document.getElementById('hdr-user'); if(!el) return;
-  el.textContent=''; const b=document.createElement('b'); b.textContent=nm; el.appendChild(b);
+  el.textContent=''; const b=document.createElement('b'); b.textContent=nm?nm+'さん':''; el.appendChild(b);
   if(cls){ const s=document.createElement('small'); s.textContent=cls; el.appendChild(s); }
   el.setAttribute('aria-label',headerWho());
 }
 function headerWho(){
   const st=STUDENT||{}, nm=String(st.name||ME&&ME.displayName||ME&&ME.email||'');
   const cls=st.grade?`${st.grade}年${st.class?st.class+'組':''}`:'';
-  return nm?`${nm}${cls?'（'+cls+'）':''}`:'';   // 例: 生徒 花子（3年2組）
+  return nm?`${nm}さん${cls?'（'+cls+'）':''}`:'';   // 例: 生徒 花子（3年2組）
 }
 function dailyNote(){
   const d=new Date(); d.setHours(0,0,0,0);
@@ -1459,14 +1459,15 @@ function renderEngage(){
   // ミッション
   const learnToday=L.some(l=>normDay(l.date)===t);
   const inquiryWeek=Q.some(q=>wk.indexOf(normDay(q.date))>=0);
-  const goalMonth=G.some(g=>String(g.scope)==='month'&&String(g.period||'').slice(0,7)===ym);
+  const ymOf=p=>{ const v=String(p||''), m=v.match(/(\d{4})[\/\-](\d{1,2})/); if(m) return m[1]+'-'+m[2].padStart(2,'0'); const d=new Date(v); if(!isNaN(d.getTime())){ const j=new Date(d.getTime()+9*3600000); return `${j.getUTCFullYear()}-${String(j.getUTCMonth()+1).padStart(2,'0')}`; } return ''; };   // 目標の表示と同じ判定（2026/11・日付型どちらも可）
+  const goalMonth=G.some(g=>String(g.scope)==='month'&&ymOf(g.period)===ym&&String(g.content||'').trim()!=='');
   const inbox=window.cpInboxState?cpInboxState():null;
   const items=[
    {ic:'import_contacts',t:'今日の学習を1件記録する',s:learnToday?'記録できました':'教科・時間・ひとこと',done:learnToday,go:'learning'},
   ];
   // 探究のミッションは、ゼミに所属している生徒だけ（所属は、ゼミの情報で確認してから出す）
   if(window.__semis&&window.__semis.length) items.push({ic:'search',t:'探究を1件記録する',s:inquiryWeek?'今週は記録できました':'今週のうちに1件',done:inquiryWeek,go:'inquiry'});
-  items.push({ic:'target',t:'今月の目標を決める',s:goalMonth?'設定ずみ':'今月の目標がまだ空です',done:goalMonth,go:'goal'});
+  if(!goalMonth) items.push({ic:'target',t:'今月の目標を決める',s:'今月の目標がまだ空です',done:false,go:'goal'});   // 決めてあれば、ミッションには出さない
   if(inbox&&inbox.ready&&inbox.enabled) items.push({ic:'notifications',t:'連絡を確認する',s:inbox.unread?`未読が ${inbox.unread} 件あります`:'すべて確認ずみ',done:!inbox.unread&&!inbox.problem,go:'bell'});
   const doneN=items.filter(i=>i.done).length, all=doneN===items.length;
   const card=document.getElementById('mission-card'); if(card) card.hidden=false;
