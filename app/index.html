@@ -41,7 +41,7 @@ header {
 .brand-mark { width: 30px; height: 30px; flex: none; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .brand-text strong { color: var(--cp-ink); font-size: 1.05rem; font-weight: 800; letter-spacing: .2px; white-space: nowrap; }
-.brand-text small { color: var(--cp-text-2); font-size: 11.5px; }
+.brand-text small { color: var(--cp-text-2); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
 .hdr-end { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .hdr-who { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; min-width: 0; max-width: 46vw; text-align: right; }
 .hdr-who b { font-size: 13px; font-weight: 700; color: var(--cp-ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -469,6 +469,7 @@ html, body, * { touch-action: manipulation; }
  <path d="M40 30l12 6-12 6" fill="none" stroke="#D4AF37" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
  </svg>
  <div class="brand-text">
+ <small>TNUSS</small>
  <strong>CareerPort</strong>
  </div>
  </div>
@@ -1451,11 +1452,9 @@ function renderEngage(){
   const now=new Date(), t=dayKey(now), ym=t.slice(0,7), wk=weekDays();
   const L=INIT_DATA.learningLogs||[], Q=INIT_DATA.inquiryLogs||[], G=INIT_DATA.goals||[];
   // あいさつ
-  const h=now.getHours(), greet=h>=5&&h<10?'おはよう':h>=10&&h<17?'こんにちは':h>=17&&h<23?'こんばんは':'おつかれさま';
-  const first=(String(STUDENT.name||'').split(/[\s　]+/).filter(String).pop())||'';
   const wd='日月火水木金土'[now.getDay()];
-  const hm=document.getElementById('hello-main'); if(hm) hm.textContent=`${greet}${first?'、'+first+'さん':''}`;
-  const hs=document.getElementById('hello-sub'); if(hs) hs.textContent=`${now.getMonth()+1}月${now.getDate()}日（${wd}）`;
+  const hm=document.getElementById('hello-main'); if(hm) hm.textContent=`${now.getMonth()+1}月${now.getDate()}日（${wd}）`;   // あいさつは出さず、日付だけ
+  const hs=document.getElementById('hello-sub'); if(hs){ hs.textContent=''; hs.hidden=true; }
   // ミッション
   const learnToday=L.some(l=>normDay(l.date)===t);
   const inquiryWeek=Q.some(q=>wk.indexOf(normDay(q.date))>=0);
@@ -1499,7 +1498,28 @@ function loadSeminars(){
       .withFailureHandler(function(){ window.__semis=[]; }).zemiGetHome();
   }catch(e){ window.__semis=[]; }
 }
-document.addEventListener('visibilitychange',function(){ if(!document.hidden) try{ renderEngage(); }catch(e){} });   // 日付をまたいで開いたとき
+/* アプリを開き直したとき（ホーム画面のアプリは、閉じても裏に残っていて、再読み込みされない）:
+   日付が変わっていたら、日付の入力欄を今日に直し、データを取り直す。長く裏にいたあとも、データを取り直す。 */
+var _lastDay=dayKey(), _hiddenAt=0, _resumeBusy=false;
+function onAppResume(){
+  try{
+    var k=dayKey(), changed=(k!==_lastDay), longAway=_hiddenAt && (Date.now()-_hiddenAt>30*60*1000);
+    if(changed){
+      var prev=_lastDay; _lastDay=k;
+      ['ll-date','iq-date','asp-date','cert-date','mob-mock-date'].forEach(function(id){ var el=document.getElementById(id); if(el&&(!el.value||el.value===prev)) el.value=k; });   // 自分で選んだ日付は残す
+      try{ updateGoalPeriod(); }catch(e){}
+    }
+    renderEngage();
+    if((changed||longAway) && !_resumeBusy && typeof initApply==='function'){
+      _resumeBusy=true;
+      api('getInitialData').then(function(fresh){
+        if(fresh && !fresh.error){ try{ if(window.CP_CACHE) CP_CACHE.write('getInitialData',fresh); }catch(e){} return initApply(fresh); }
+      }).catch(function(){}).then(function(){ _resumeBusy=false; });
+    }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',function(){ if(document.hidden) _hiddenAt=Date.now(); else { onAppResume(); _hiddenAt=0; } });
+window.addEventListener('pageshow',function(ev){ if(ev.persisted) onAppResume(); });
 
 /* ════════════ INIT ════════════ */
 /* 起動: 前回の取得結果（端末に保存。CP_CACHE は GitHub Pages 版の cp-api.js が提供）があれば、先にそれで画面を出し、
@@ -2323,7 +2343,8 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
   .cml-mail.has-sel .cml-mread { display: block; }
   body.cp-has-sidenav .cml-back, .cml-back { display: inline-flex !important; }
 }
-.cp-tabbadge { display: inline-block; min-width: 18px; height: 18px; line-height: 18px; padding: 0 5px; margin-left: 5px; border-radius: 9px; background: var(--cp-danger-solid, #c0392b); color: #fff; font-size: 11px; font-weight: 700; text-align: center; box-sizing: border-box; }
+.cp-tabbadge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 10px; vertical-align: middle; box-sizing: border-box;
+  background: linear-gradient(180deg, var(--cp-danger-solid, #c0392b), color-mix(in srgb, var(--cp-danger-solid, #c0392b) 78%, #000)); color: #fff; font: 800 11px/1 var(--cp-font, inherit); font-variant-numeric: tabular-nums; box-shadow: 0 1px 3px rgba(0,0,0,.22); }
 .cp-tabbadge[hidden] { display: none; }
 </style>
 <script>
@@ -2501,8 +2522,9 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 .cp-bell .material-symbols-rounded { font-size: 22px; }
 .cp-bell.ring { animation: cp-ring .8s ease 1; }
 @keyframes cp-ring { 0%,100% { transform: rotate(0) } 20% { transform: rotate(14deg) } 40% { transform: rotate(-12deg) } 60% { transform: rotate(8deg) } 80% { transform: rotate(-4deg) } }
-.cp-badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; box-sizing: border-box;
-  background: var(--cp-danger-solid); color: #fff; font: 700 11px/18px var(--cp-font); text-align: center; border: 2px solid var(--cp-surface); }
+.cp-badge { position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, var(--cp-danger-solid), color-mix(in srgb, var(--cp-danger-solid) 78%, #000)); color: #fff; font: 800 11px/1 var(--cp-font); font-variant-numeric: tabular-nums; letter-spacing: 0;
+  border: 2px solid var(--cp-surface); box-shadow: 0 1px 3px rgba(0,0,0,.28); }
 .cp-badge[hidden] { display: none; }
 
 #cp-inbox[hidden] { display: none; }
@@ -2694,11 +2716,11 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 .cz .cz-step.on::before, .cz .cz-step.on::after { background: var(--cp-navy); }
 .cz .cz-step.cur::before { box-shadow: 0 0 0 4px var(--cp-tint-mid); }
 .cz .cz-hero { padding: 14px 16px; }
-.cz .cz-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--cp-border); margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
-.cz .cz-tab { flex: none; border: 0 !important; background: transparent !important; color: var(--cp-text-2) !important; padding: 9px 14px !important; font: 700 13px/1.2 inherit; cursor: pointer; border-bottom: 3px solid transparent !important; border-radius: 8px 8px 0 0 !important; box-shadow: none !important; white-space: nowrap; height: auto !important; }
+.cz .cz-tabs { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--cp-hover); margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }   /* 進路・活動の切り替え（.cp-seg）と同じ見た目にそろえる */
+.cz .cz-tab { flex: 1 0 auto; border: 0 !important; background: transparent !important; color: var(--cp-text-2) !important; padding: 6px 16px !important; font: 700 13px/1.2 inherit; cursor: pointer; border-radius: 8px !important; box-shadow: none !important; white-space: nowrap; min-height: 32px; }
 .cz .cz-tab .n { margin-left: 6px; font-size: 11px; font-weight: 600; color: var(--cp-muted); }
-.cz .cz-tab:hover { background: var(--cp-tint-soft) !important; }
-.cz .cz-tab[aria-selected="true"] { color: var(--cp-ink) !important; border-bottom-color: var(--cp-navy) !important; background: var(--cp-tint-soft) !important; }
+.cz .cz-tab:hover { color: var(--cp-ink) !important; }
+.cz .cz-tab[aria-selected="true"] { background: var(--cp-surface) !important; color: var(--cp-ink) !important; box-shadow: 0 1px 2px rgba(0,0,0,.12) !important; }
 .cz .cz-panel[hidden] { display: none; }
 .cz .cz-who { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--cp-tint-soft); }
 .cz .cz-who .k { font-size: 11px; font-weight: 700; color: var(--cp-text-2); letter-spacing: .3px; }
