@@ -73,7 +73,7 @@ input[type="text"], input[type="date"], input[type="number"], textarea, select {
  transition: border-color .15s;
 }
 input:focus, textarea:focus, select:focus { border-color: var(--navy); background: var(--cp-surface); }
-textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+textarea { resize: vertical; min-height: 84px; line-height: 1.6; }
 select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M6 8L0 0h12z' fill='%2364748b'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
 
 /* Hours quick-select */
@@ -377,8 +377,8 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .daily-go { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--cp-info-fg); background: var(--cp-surface); color: var(--cp-info-fg); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .mission-bar > span { transition: none; } }
 /* 教科ボタン: 画面の幅に合わせて列を決め、長い名前（保健体育・技術家庭）も、ボタンの中に収める */
-#ll-subj-row { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(5.4em, 1fr)); gap: 6px !important; }
-#ll-subj-row .h-btn { flex: none; min-width: 0; width: 100%; height: 42px; padding: 0 4px; font-size: clamp(12px, 3.5vw, 14px); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#ll-subj-row { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 6px !important; }
+#ll-subj-row .h-btn { flex: none; min-width: 0; width: 100%; height: 38px; padding: 0 2px; font-size: clamp(11.5px, 3.3vw, 13px); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 校内成績の「表示する年度」: ラベル + 前へ／次へ + 大きな選択欄 */
 .yr-box { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0; margin-bottom: 10px; }
 .yr-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -392,6 +392,43 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--cp-navy); outline-offset: 2px; }
 input:not([type=checkbox], [type=radio], [type=range]), select, textarea { border-color: var(--cp-border-strong); }
 input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-shadow: 0 0 0 3px var(--cp-tint-soft); outline: none; }
+
+/* ════ 部品の統一（ボタン・選択肢・入力欄・配色を、アクセントの色に揃える） ════ */
+:root { --cp-other-bg: var(--cp-tint-soft); --cp-other-fg: var(--cp-ink); --ctl-r: 12px; }
+input[type="text"], input[type="date"], input[type="number"], textarea, select { border-color: var(--cp-border-strong); border-radius: var(--ctl-r); }
+/* 選ぶボタン（時間・絞り込み・分野・タグ）は全部同じ形。選ぶと、アクセントの色で塗る */
+.h-btn, .chip, .field-chip, .quick-tag { border: 1.5px solid var(--cp-border-strong); background: var(--cp-surface); color: var(--cp-text-2); font-weight: 700; box-shadow: none; }
+.h-btn { height: 40px; border-radius: var(--ctl-r); font-size: 14px; }
+.chip, .field-chip, .quick-tag { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; }
+.h-btn.sel, .chip.active, .field-chip.active { background: var(--cp-navy); border-color: var(--cp-navy); color: #fff; }
+.quick-tag:active { background: var(--cp-navy); border-color: var(--cp-navy); color: #fff; }
+.scope-row { border-radius: var(--ctl-r); }
+.scope-btn { border-radius: calc(var(--ctl-r) - 3px); font-weight: 700; }
+.scope-btn.active { background: var(--cp-navy); color: #fff; box-shadow: none; }
+/* 主ボタン・副ボタン */
+.submit-btn { height: 48px; border-radius: var(--ctl-r); background: var(--cp-tint); color: var(--cp-on-tint); font-size: 15px; margin-top: 14px; }
+.submit-btn .material-symbols-rounded { color: inherit; }
+.daily-go, .more-btn { min-height: 40px; border-radius: var(--ctl-r); }
+.more-btn { width: 100%; margin-top: 6px; border: 1.5px solid var(--cp-border-strong); background: var(--cp-surface); color: var(--cp-text-2); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.other-btn { border-color: var(--cp-border); border-radius: var(--cp-r, 14px); box-shadow: none; }
+.feed-stats { background: var(--cp-tint-soft); }
+.feed-stat-div { background: var(--cp-border-strong); }
+/* ホームの設定（ふだんは閉じておく） */
+.settings-card { padding: 0; }
+.settings-card > summary { display: flex; align-items: center; gap: 10px; padding: 14px 16px; min-height: 52px; cursor: pointer; list-style: none; font-weight: 700; font-size: 14px; color: var(--cp-ink); }
+.settings-card > summary::-webkit-details-marker { display: none; }
+.settings-card > summary span:nth-child(2) { flex: 1; }
+.settings-card .chev { transition: transform .2s; color: var(--cp-muted); }
+.settings-card[open] .chev { transform: rotate(180deg); }
+.settings-body { padding: 0 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.settings-body > .cp-group, .settings-body > div > .cp-group { margin: 0; border: 0; background: transparent; box-shadow: none; padding: 0; }
+.settings-body .cp-row { padding: 8px 4px; border-top: 1px solid var(--cp-border); }
+.settings-body #theme-seg { display: flex; width: 100%; margin-top: 8px; }
+.settings-body #theme-seg button { flex: 1; }
+.settings-body .cp-swatches { gap: 8px; }
+.settings-body .cp-sw { width: 34px; height: 34px; }
+/* ダブルタップでの拡大を、ページ全体でなくす（ピンチの拡大は残す） */
+html, body, * { touch-action: manipulation; }
 </style>
 <meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="cp-design.css">
@@ -504,29 +541,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <p id="daily-text" class="daily-text"></p>
  <button type="button" class="daily-go" id="daily-go" hidden onclick="useDailyQuestion()"><span class="material-symbols-rounded">search</span>この問いで探究を書く</button>
  </section>
- <div class="cp-group-title" style="margin-top:4px;">きょうの記録</div>
- <div class="cp-group">
- <button type="button" class="cp-row tappable" onclick="switchTab('learning')">
- <span class="cp-row-ic"><span class="material-symbols-rounded">import_contacts</span></span>
- <span class="cp-row-main"><span class="cp-row-title">学習を記録する</span><span class="cp-row-sub" style="display:block">教科・時間・ひとこと</span></span>
- <span class="cp-row-end"><span class="material-symbols-rounded">chevron_right</span></span>
- </button>
- <button type="button" class="cp-row tappable" onclick="switchTab('inquiry')">
- <span class="cp-row-ic"><span class="material-symbols-rounded">search</span></span>
- <span class="cp-row-main"><span class="cp-row-title">探究を記録する</span><span class="cp-row-sub" style="display:block">問い・調べたこと・先生のコメント</span></span>
- <span class="cp-row-end"><span class="material-symbols-rounded">chevron_right</span></span>
- </button>
- <button type="button" class="cp-row tappable" onclick="switchTab('goal')">
- <span class="cp-row-ic"><span class="material-symbols-rounded">target</span></span>
- <span class="cp-row-main"><span class="cp-row-title">目標を確認・更新する</span><span class="cp-row-sub" style="display:block">今月・今年度の目標</span></span>
- <span class="cp-row-end"><span class="material-symbols-rounded">chevron_right</span></span>
- </button>
- <button type="button" class="cp-row tappable" onclick="switchTab('grades')">
- <span class="cp-row-ic"><span class="material-symbols-rounded">grade</span></span>
- <span class="cp-row-main"><span class="cp-row-title">成績を見る</span><span class="cp-row-sub" style="display:block">校内成績・推移</span></span>
- <span class="cp-row-end"><span class="material-symbols-rounded">chevron_right</span></span>
- </button>
- </div>
+ <details class="card settings-card">
+ <summary><span class="material-symbols-rounded" aria-hidden="true">tune</span><span>設定（明るさ・色・ホーム画面に追加）</span><span class="material-symbols-rounded chev" aria-hidden="true">expand_more</span></summary>
+ <div class="settings-body">
  <div id="a2hs" class="cp-group" style="display:none">
  <details class="cp-row" style="display:block;cursor:pointer">
  <summary style="display:flex;align-items:center;gap:12px;list-style:none;font-weight:600">
@@ -540,9 +557,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  </div>
  </details>
  </div>
- <div class="cp-group-title">表示</div>
- <div class="cp-group"><div class="cp-row">
- <span class="cp-row-main"><span class="cp-row-title">画面の明るさ</span><span class="cp-row-sub" style="display:block">端末の設定に合わせる／ライト／ダーク</span></span>
+  <div class="cp-group"><div class="cp-row" style="display:block">
+ <span class="cp-row-main" style="display:block"><span class="cp-row-title">画面の明るさ</span><span class="cp-row-sub" style="display:block">端末の設定に合わせる／ライト／ダーク</span></span>
  <span id="theme-seg" class="cp-seg" role="group" aria-label="画面の明るさ">
  <button type="button" data-t="auto" onclick="setThemeUI('auto')">自動</button>
  <button type="button" data-t="light" onclick="setThemeUI('light')">ライト</button>
@@ -553,6 +569,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <div class="cp-row-main"><span class="cp-row-title" id="accent-title">テーマカラー</span><span class="cp-row-sub" style="display:block;margin-bottom:10px">好きな色を選ぶと、アプリ全体の色が変わります（この端末に保存）</span></div>
  <div id="accent-picker" aria-labelledby="accent-title"></div>
  </div></div>
+ </div>
+ </details>
  </div><!-- /tab-home -->
 
  <!-- ══ TAB: 学習ログ ══ -->
@@ -714,7 +732,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <div class="fg"><label>タイトル（テーマ・活動名）</label><input type="text" id="iq-title" placeholder="例：SDGsと地域課題のつながり"></div>
  <div class="fg">
  <label>内容・気づき・問い</label>
- <textarea id="iq-content" placeholder="調べたこと、考えたこと、疑問に思ったこと…" style="min-height:120px;"></textarea>
+ <textarea id="iq-content" placeholder="調べたこと、考えたこと、疑問に思ったこと…" style="min-height:90px;"></textarea>
  <div id="zemi-ai-mount"></div>
  </div>
  <div class="fg">
@@ -1944,11 +1962,17 @@ async function submitMobMock(){
 }
 
 /* ════════════ RENDER ════════════ */
+function capList(el,n){   // 最近のログは、まず3件だけ。残りは「もっと見る」で
+ const items=[...el.querySelectorAll('.entry')]; if(items.length<=n) return;
+ items.slice(n).forEach(x=>x.hidden=true);
+ const b=document.createElement('button'); b.type='button'; b.className='more-btn'; b.textContent='もっと見る（残り '+(items.length-n)+' 件）';
+ b.onclick=()=>{ items.forEach(x=>x.hidden=false); b.remove(); }; el.appendChild(b);
+}
 function renderLearningRecent(logs){
  const list=logs.filter(l=>{ const t=String(l.__type||'').toLowerCase(); return t==='learning'||t==='学習'||t===''; }).slice(0,6);
  const el=document.getElementById('ll-recent');
  if(!list.length){ el.innerHTML='<p class="empty-note">学習ログはまだありません</p>'; return; }
- el.innerHTML=list.map(l=>`<div class="entry learning"><div class="entry-head"><span class="entry-date">${esc(fmtDate(l.date))}</span>${l.subject?`<span class="entry-subj"${subjStyle(l.subject)}>${esc(l.subject)}</span>`:''} ${l.hours?`<span style="font-size:10px;color:var(--muted);">${esc(String(l.hours))}h</span>`:''}</div>${l.title?`<div class="entry-title">${esc(l.title)}</div>`:''}${l.content?`<div class="entry-body">${esc(l.content)}</div>`:''}</div>`).join('');
+ el.innerHTML=list.map(l=>`<div class="entry learning"><div class="entry-head"><span class="entry-date">${esc(fmtDate(l.date))}</span>${l.subject?`<span class="entry-subj"${subjStyle(l.subject)}>${esc(l.subject)}</span>`:''} ${l.hours?`<span style="font-size:10px;color:var(--muted);">${esc(String(l.hours))}h</span>`:''}</div>${l.title?`<div class="entry-title">${esc(l.title)}</div>`:''}${l.content?`<div class="entry-body">${esc(l.content)}</div>`:''}</div>`).join(''); capList(el,3);
 }
 
 // ▼ 探究ログ表示：渡されたログをそのまま表示（呼び出し元で型フィルター済み）
@@ -1956,7 +1980,7 @@ function renderInquiryRecent(logs){
  const list=logs.slice(0,6);
  const el=document.getElementById('iq-recent');
  if(!list.length){ el.innerHTML='<p class="empty-note">探究ログはまだありません</p>'; return; }
- el.innerHTML=list.map(l=>`<div class="entry inquiry"><div class="entry-head"><span class="entry-date">${esc(fmtDate(l.date))}</span>${l.hours?`<span style="font-size:10px;color:var(--muted);">${esc(String(l.hours))}h</span>`:''}</div>${l.title?`<div class="entry-title">${esc(l.title)}</div>`:''}${l.content?`<div class="entry-body">${esc(l.content)}</div>`:''}</div>`).join('');
+ el.innerHTML=list.map(l=>`<div class="entry inquiry"><div class="entry-head"><span class="entry-date">${esc(fmtDate(l.date))}</span>${l.hours?`<span style="font-size:10px;color:var(--muted);">${esc(String(l.hours))}h</span>`:''}</div>${l.title?`<div class="entry-title">${esc(l.title)}</div>`:''}${l.content?`<div class="entry-body">${esc(l.content)}</div>`:''}</div>`).join(''); capList(el,3);
 }
 
 function renderGoalDisplay(goals){
