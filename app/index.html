@@ -41,9 +41,10 @@ header {
 .brand-mark { width: 30px; height: 30px; flex: none; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .brand-text strong { color: var(--cp-ink); font-size: 1.05rem; font-weight: 800; letter-spacing: .2px; white-space: nowrap; }
-.brand-text small { color: var(--cp-muted); font-size: 10.5px; }
-#hdr-user { font-size: 12px; color: var(--cp-text-2); text-align: right; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pc-link { font-size: 11.5px; font-weight: 700; color: var(--cp-ink); border: 1px solid var(--cp-border-strong); border-radius: 999px; padding: 4px 10px; text-decoration: none; white-space: nowrap; }
+.brand-text small { color: var(--cp-text-2); font-size: 11.5px; }
+#hdr-user { display: block; font-size: 12px; color: var(--cp-text-2); max-width: 62vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-right { display: flex; align-items: center; gap: 8px; flex: none; }
+.hdr-right .cp-bell { margin: 0; }
 
 /* ── Main scroll area ── */
 main { max-width: 680px; margin: 0 auto; padding: 12px 12px calc(76px + var(--cp-safe-bottom) + 8px); display: flex; flex-direction: column; gap: 12px; }
@@ -323,6 +324,51 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .feed-stat-val { font-size: 18px; font-weight: 800; color: var(--cp-other-fg); }
 .feed-stat-lbl { font-size: 9px; color: var(--muted); font-weight: 600; }
 .feed-stat-div { width: 1px; height: 28px; background: rgba(124,58,237,.2); }
+
+/* ════ 毎日開きたくなる工夫（あいさつ・ミッション・スタンプ・ひとこと） ════ */
+.hello { padding: 2px 4px 0; }
+.hello-main { font-size: 1.25rem; font-weight: 800; color: var(--cp-ink); line-height: 1.3; }
+.hello-sub { font-size: 12.5px; color: var(--cp-text-2); margin-top: 2px; }
+.mission h2, .daily h2 { margin: 0; font-size: 1rem; color: var(--cp-ink); }
+.mission-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mission-count { font-size: 13px; font-weight: 800; color: var(--cp-ink); background: var(--cp-tint-soft); border-radius: 999px; padding: 2px 10px; }
+.mission-bar { height: 8px; border-radius: 99px; background: var(--cp-hover); overflow: hidden; margin-bottom: 10px; }
+.mission-bar > span { display: block; height: 100%; width: 0; background: var(--cp-sage-600); border-radius: 99px; transition: width .5s ease; }
+.mission-list { display: grid; gap: 6px; }
+.mi { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: transparent; border: 1.5px solid var(--cp-border); border-radius: 12px; padding: 10px 12px; cursor: pointer; font: inherit; color: var(--cp-text); min-height: 52px; }
+.mi:hover { background: var(--cp-hover); }
+.mi .mk { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--cp-border-strong); display: grid; place-items: center; color: #fff; font-size: 16px; }
+.mi.done { background: var(--cp-ok-bg); border-color: var(--cp-ok-bd); }
+.mi.done .mk { background: var(--cp-ok-solid); border-color: var(--cp-ok-solid); }
+.mi .mt { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; }
+.mi .ms { display: block; font-weight: 500; font-size: 12px; color: var(--cp-text-2); }
+.mi .mg { flex: none; color: var(--cp-muted); }
+.mission-done { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--cp-warm); color: var(--cp-warm-ink); font-weight: 700; font-size: 13.5px; text-align: center; }
+.week-stamps { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--cp-border); }
+.ws-title { font-size: 12.5px; font-weight: 700; color: var(--cp-text-2); margin-bottom: 8px; }
+.ws-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.ws { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--cp-text-2); }
+.ws i { width: 34px; height: 34px; border-radius: 50%; border: 2px dashed var(--cp-border-strong); display: grid; place-items: center; font-style: normal; font-size: 16px; }
+.ws.on i { border: 0; background: var(--cp-navy); color: #fff; }
+.ws.today i { outline: 2px solid var(--cp-gold); outline-offset: 2px; }
+.ws.future { opacity: .45; }
+.daily { background: var(--cp-info-bg); border-color: var(--cp-info-bd); }
+.daily-kind { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.daily-chip { font-size: 11px; font-weight: 800; border-radius: 999px; padding: 2px 10px; background: var(--cp-surface); color: var(--cp-info-fg); border: 1px solid var(--cp-info-bd); }
+.daily-text { margin: 0; font-size: 15px; line-height: 1.7; color: var(--cp-text); }
+.daily-go { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--cp-info-fg); background: var(--cp-surface); color: var(--cp-info-fg); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .mission-bar > span { transition: none; } }
+/* 教科ボタン: 画面の幅に合わせて列を決め、長い名前（保健体育・技術家庭）も、ボタンの中に収める */
+#ll-subj-row { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(5.4em, 1fr)); gap: 6px !important; }
+#ll-subj-row .h-btn { flex: none; min-width: 0; width: 100%; height: 42px; padding: 0 4px; font-size: clamp(12px, 3.5vw, 14px); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 校内成績の「表示する年度」: ラベル + 前へ／次へ + 大きな選択欄 */
+.yr-box { display: flex; flex-direction: column; align-items: stretch; gap: 6px; background: var(--cp-hover); border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
+.yr-label { font-size: 12px; font-weight: 700; color: var(--cp-text-2); }
+.yr-stepper { display: flex; align-items: center; gap: 8px; }
+.yr-btn { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--cp-surface); color: var(--cp-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.yr-btn .material-symbols-rounded { font-size: 24px; }
+.yr-btn:disabled { opacity: .35; cursor: default; }
+#mob-grade-year { flex: 1; width: auto; min-width: 0; height: 40px; padding: 0 28px 0 12px; font-size: 16px; font-weight: 800; color: var(--cp-ink); text-align: center; text-align-last: center; border-radius: 10px; background-color: var(--cp-surface); }
 /* ── スマホ版の整え（PC版と同じボタン・枠線・フォーカスの規則） ── */
 .h-btn { white-space: nowrap; font-size: 13px; padding-left: 4px; padding-right: 4px; min-width: 0; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--cp-navy); outline-offset: 2px; }
@@ -369,13 +415,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  </svg>
  <div class="brand-text">
  <strong>CareerPort</strong>
- <small>TNUSS 生徒用</small>
+ <small id="hdr-user">読み込み中...</small>
  </div>
  </div>
- <div style="display:flex;align-items:center;gap:8px;min-width:0;">
- <div id="hdr-user">読み込み中...</div>
- <a class="pc-link" href="#" data-cp-link="PC_URL" target="_top" onclick="try{localStorage.setItem('cp_view','pc')}catch(e){}">PC版</a>
- </div>
+ <div id="cp-bell-host" class="hdr-right"></div>
 </header>
 
 <!-- Main -->
@@ -390,6 +433,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
 
  <!-- ══ TAB: ホーム ══ -->
  <div id="tab-home" class="tab-pane active">
+ <div class="hello" id="home-hello" aria-live="polite"><div class="hello-main" id="hello-main"></div><div class="hello-sub" id="hello-sub"></div></div>
  <div id="home-stats">
  <!-- Stats Card (gamification) -->
  <div class="stats-card" id="ll-stats-card">
@@ -418,6 +462,26 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <div class="moti-msg" id="moti-msg">読み込み中...</div>
  </div>
  </div>
+ <!-- きょうのミッション -->
+ <section class="card mission" id="mission-card" aria-labelledby="mission-title" hidden>
+ <div class="mission-head">
+ <h2 id="mission-title">きょうのミッション</h2>
+ <span class="mission-count" id="mission-count"></span>
+ </div>
+ <div class="mission-bar" aria-hidden="true"><span id="mission-bar-fill"></span></div>
+ <div id="mission-list" class="mission-list"></div>
+ <div id="mission-done" class="mission-done" hidden></div>
+ <div class="week-stamps" aria-label="今週の記録">
+ <div class="ws-title">今週のスタンプ <span id="ws-count"></span></div>
+ <div id="ws-row" class="ws-row"></div>
+ </div>
+ </section>
+ <!-- きょうのひとこと -->
+ <section class="card daily" id="daily-card" aria-labelledby="daily-title" hidden>
+ <div class="daily-kind"><span id="daily-chip" class="daily-chip"></span><h2 id="daily-title">きょうのひとこと</h2></div>
+ <p id="daily-text" class="daily-text"></p>
+ <button type="button" class="daily-go" id="daily-go" hidden onclick="useDailyQuestion()"><span class="material-symbols-rounded">search</span>この問いで探究を書く</button>
+ </section>
  <div class="cp-group-title" style="margin-top:4px;">きょうの記録</div>
  <div class="cp-group">
  <button type="button" class="cp-row tappable" onclick="switchTab('learning')">
@@ -880,10 +944,17 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <!-- ══ TAB: 成績 ══ -->
  <div id="tab-grades" class="tab-pane">
    <div class="card">
-     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
        <span class="material-symbols-rounded" style="color:var(--cp-accent-ink);">grade</span>
        <strong style="font-size:15px;color:var(--cp-ink);">校内成績</strong>
-       <select id="mob-grade-year" onchange="renderMobGrades(GRADES_DATA&&GRADES_DATA.subjects||[],this.value)" style="margin-left:auto;font-size:12px;border:1.5px solid var(--border);border-radius:8px;padding:2px 4px;background:var(--cp-bg);color:var(--cp-text);width:80px;"></select>
+     </div>
+     <div class="yr-box">
+       <span class="yr-label" id="yr-label">表示する年度</span>
+       <div class="yr-stepper" role="group" aria-labelledby="yr-label">
+         <button type="button" class="yr-btn" id="yr-prev" aria-label="前の年度" onclick="stepGradeYear(-1)"><span class="material-symbols-rounded">chevron_left</span></button>
+         <select id="mob-grade-year" aria-labelledby="yr-label" onchange="onGradeYearChange(this.value)"></select>
+         <button type="button" class="yr-btn" id="yr-next" aria-label="次の年度" onclick="stepGradeYear(1)"><span class="material-symbols-rounded">chevron_right</span></button>
+       </div>
      </div>
      <div id="mob-grades-overview"></div>
    </div>
@@ -1086,7 +1157,7 @@ function updateStatsAfterSave(newLogEntry){
  INIT_DATA.learningLogs=[newLogEntry,...(INIT_DATA.learningLogs||[])];
  const stats=computeStats(INIT_DATA.learningLogs);
  if(_lastStats&&stats.streak>_lastStats.streak){ const sn=document.getElementById('streak-num'); if(sn){sn.classList.remove('streak-pop');void sn.offsetWidth;sn.classList.add('streak-pop');} }
- _lastStats=stats; renderStats(stats);
+ _lastStats=stats; renderStats(stats); try{ renderEngage(); }catch(e){}
  const ms=MILESTONES.find(m=>m.n===stats.total); if(ms) setTimeout(()=>showAchievement(ms.msg),600);
 }
 
@@ -1239,6 +1310,126 @@ function renderSharedFeed(entries, stats){
  </div>`).join('');
 }
 
+
+/* ════════════ 毎日開きたくなる工夫 ════════════
+   あいさつ・きょうのミッション（4つ）・今週のスタンプ・きょうのひとこと。データは、すでに読み込んだ記録・目標・連絡から作る（追加の通信なし）。 */
+const DAILY_NOTES=[
+ {k:'問い',t:'身のまわりで「ちょっと不便だな」と思うことを1つ見つけて、なぜ不便なのか考えてみよう。'},
+ {k:'ヒント',t:'勉強の最初の5分は、昨日の復習から。思い出す作業が、いちばん記憶に残ります。'},
+ {k:'ことば',t:'昨日の自分より、ほんの少しだけ前へ。それで十分です。'},
+ {k:'問い',t:'いま、いちばん「なぜだろう？」と思っていることは何？ 理由を3つ予想してみよう。'},
+ {k:'ヒント',t:'問題を解いたら、「どこでつまずいたか」を一言メモ。次の自分への最高のヒントになります。'},
+ {k:'問い',t:'最近見たニュースを1つ選んで、「もし自分が当事者だったら」を想像して書いてみよう。'},
+ {k:'ことば',t:'続けることは、才能より強い。'},
+ {k:'ヒント',t:'集中が切れたら、立ち上がって水を一杯。5分休むと、次の25分がはかどります。'},
+ {k:'問い',t:'好きなものを1つ選んで、「それはどうやってできているのか」を調べてみよう。'},
+ {k:'ヒント',t:'教科書を閉じて、今日習ったことを「友だちに説明するつもり」で書き出してみよう。'},
+ {k:'ことば',t:'わからないは、伸びるチャンス。'},
+ {k:'問い',t:'地元（土浦・つくば）の「すごいところ」と「課題」を、1つずつ挙げてみよう。'},
+ {k:'ヒント',t:'苦手な教科は、最初に10分だけ。短くても、毎日触れると苦手意識が薄れます。'},
+ {k:'問い',t:'「当たり前」だと思っていることを1つ選んで、「本当にそう？」と疑ってみよう。'},
+ {k:'ことば',t:'完璧じゃなくていい。今日の1件が、明日の自信になる。'},
+ {k:'ヒント',t:'ノートに書く前に、頭の中で一度、流れをなぞってみよう。理解の穴が見つかります。'},
+ {k:'問い',t:'将来やってみたい仕事を1つ思い浮かべて、その仕事が「誰を助けているか」考えてみよう。'},
+ {k:'ことば',t:'小さな記録の積み重ねが、いつか大きな探究になる。'},
+ {k:'ヒント',t:'寝る前の10分は、記憶が定着しやすい時間。今日の学習を、軽く見返してみよう。'},
+ {k:'問い',t:'ひとつの言葉（例：「ゴミ」）を、別の見方（資源・エネルギー…）で言い換えてみよう。'},
+ {k:'ヒント',t:'目標は「毎日30分」より「英単語を10個」のように、終わりが見えるものにすると続きます。'},
+ {k:'ことば',t:'今日のあなたの記録を、未来のあなたが待っています。'},
+ {k:'問い',t:'最近、うまくいかなかったことは？ 次はどこを変えると、うまくいきそう？'},
+ {k:'ヒント',t:'スマホは、勉強中は別の部屋に。目に入らないだけで、集中力がぐっと上がります。'},
+ {k:'問い',t:'いま気になっている社会の課題を1つ選んで、「自分にできる最初の一歩」を考えよう。'},
+ {k:'ことば',t:'やってみた人だけが、わかることがある。'},
+ {k:'ヒント',t:'調べたことは、必ず「出典（どこで知ったか）」も一緒にメモしよう。探究の力になります。'},
+ {k:'問い',t:'家族や身近な人に、「いま困っていること」を聞いてみよう。そこに探究のタネがあるかも。'},
+ {k:'ことば',t:'迷ったら、まず1行。書き始めれば、考えは動き出す。'},
+ {k:'ヒント',t:'テスト前は、新しいことより「間違えた問題」の見直しが、いちばん点数に直結します。'},
+ {k:'問い',t:'もし1日だけ、何でも調べられるとしたら、何を調べる？ その理由は？'},
+ {k:'ヒント',t:'難しい文章は、段落ごとに「一言でいうと？」とまとめながら読もう。'},
+ {k:'ことば',t:'昨日の続きが、今日の自分をつくる。'},
+ {k:'問い',t:'最近読んだ本・見た動画の中で、「もっと知りたい」と思った言葉は？'},
+ {k:'ヒント',t:'ゼミの発表前は、「聞き手は何を知りたいか」を先に考えよう。伝わり方が変わります。'},
+ {k:'ことば',t:'好奇心は、いちばんの先生。'},
+ {k:'問い',t:'「もっと〇〇だったらいいのに」を1つ書いて、それを実現する方法を3つ考えよう。'},
+ {k:'ヒント',t:'1週間の終わりに、「できたこと」を3つ書き出そう。自信と次の目標が見えてきます。'},
+ {k:'ことば',t:'一歩ずつでも、進んでいれば大丈夫。'},
+ {k:'問い',t:'今日いちばん「へえ！」と思ったことは何？ それはなぜ驚きだった？'},
+];
+function dayKey(d){ d=d||new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function normDay(v){ return String(v||'').slice(0,10).replace(/\//g,'-'); }
+function weekDays(){   // 今週の月曜〜日曜（yyyy-mm-dd）
+  const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return Array.from({length:7},(_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+i); return dayKey(x); });
+}
+function headerWho(){
+  const st=STUDENT||{}, nm=String(st.name||ME&&ME.displayName||ME&&ME.email||'');
+  const first=nm.split(/[\s　]+/).filter(String).pop()||nm;
+  const cls=st.grade?`${st.grade}年${st.class?st.class+'組':''}`:'';
+  return nm?`${first}さん${cls?' ・ '+cls:''}`:'';
+}
+function dailyNote(){
+  const d=new Date(); d.setHours(0,0,0,0);
+  return DAILY_NOTES[Math.floor(d.getTime()/86400000)%DAILY_NOTES.length];
+}
+function useDailyQuestion(){
+  const n=dailyNote(); switchTab('inquiry');
+  setTimeout(()=>{ const t=document.getElementById('iq-title'); if(t&&!t.value.trim()) t.value=n.t.length>40?n.t.slice(0,40)+'…':n.t; const c=document.getElementById('iq-content'); if(c){ if(!c.value.trim()) c.value=n.t+'\n\n'; c.focus(); } },250);
+}
+function missionStreak(done){   // ミッションを全部達成した日の、連続日数（この端末の記録）
+  let days=[]; try{ days=JSON.parse(localStorage.getItem('cp_mission_days')||'[]'); }catch(e){}
+  const t=dayKey();
+  if(done && days.indexOf(t)<0){ days.push(t); days=days.slice(-60); try{ localStorage.setItem('cp_mission_days',JSON.stringify(days)); }catch(e){} }
+  let n=0; const d=new Date(); d.setHours(0,0,0,0);
+  if(days.indexOf(dayKey(d))<0) d.setDate(d.getDate()-1);   // 今日がまだなら、昨日から数える
+  while(days.indexOf(dayKey(d))>=0){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+function renderEngage(){
+  if(!INIT_DATA||!STUDENT) return;
+  const now=new Date(), t=dayKey(now), ym=t.slice(0,7), wk=weekDays();
+  const L=INIT_DATA.learningLogs||[], Q=INIT_DATA.inquiryLogs||[], G=INIT_DATA.goals||[];
+  // あいさつ
+  const h=now.getHours(), greet=h>=5&&h<10?'おはよう':h>=10&&h<17?'こんにちは':h>=17&&h<23?'こんばんは':'おつかれさま';
+  const first=(String(STUDENT.name||'').split(/[\s　]+/).filter(String).pop())||'';
+  const wd='日月火水木金土'[now.getDay()];
+  const hm=document.getElementById('hello-main'); if(hm) hm.textContent=`${greet}${first?'、'+first+'さん':''}`;
+  const hs=document.getElementById('hello-sub'); if(hs) hs.textContent=`${now.getMonth()+1}月${now.getDate()}日（${wd}）`;
+  // ミッション
+  const learnToday=L.some(l=>normDay(l.date)===t);
+  const inquiryWeek=Q.some(q=>wk.indexOf(normDay(q.date))>=0);
+  const goalMonth=G.some(g=>String(g.scope)==='month'&&String(g.period||'').slice(0,7)===ym);
+  const inbox=window.cpInboxState?cpInboxState():null;
+  const items=[
+   {ic:'import_contacts',t:'今日の学習を1件記録する',s:learnToday?'記録できました':'教科・時間・ひとこと',done:learnToday,go:'learning'},
+   {ic:'search',t:'探究を1件記録する',s:inquiryWeek?'今週は記録できました':'今週のうちに1件',done:inquiryWeek,go:'inquiry'},
+   {ic:'target',t:'今月の目標を決める',s:goalMonth?'設定ずみ':'今月の目標がまだ空です',done:goalMonth,go:'goal'},
+  ];
+  if(inbox&&inbox.ready&&inbox.enabled) items.push({ic:'notifications',t:'連絡を確認する',s:inbox.unread?`未読が ${inbox.unread} 件あります`:'すべて確認ずみ',done:!inbox.unread&&!inbox.problem,go:'bell'});
+  const doneN=items.filter(i=>i.done).length, all=doneN===items.length;
+  const card=document.getElementById('mission-card'); if(card) card.hidden=false;
+  const list=document.getElementById('mission-list');
+  if(list) list.innerHTML=items.map((i,ix)=>`<button type="button" class="mi${i.done?' done':''}" data-ix="${ix}" aria-label="${esc(i.t)}（${i.done?'達成ずみ':'未達成'}）"><span class="mk" aria-hidden="true">${i.done?'<span class="material-symbols-rounded" style="font-size:18px">check</span>':''}</span><span class="mt">${esc(i.t)}<span class="ms">${esc(i.s)}</span></span><span class="mg"><span class="material-symbols-rounded">chevron_right</span></span></button>`).join('');
+  if(list) list.querySelectorAll('.mi').forEach(b=>b.onclick=()=>{ const it=items[Number(b.dataset.ix)]; if(it.go==='bell'){ const bl=document.querySelector('.cp-bell'); if(bl) bl.click(); } else switchTab(it.go); });
+  const cnt=document.getElementById('mission-count'); if(cnt) cnt.textContent=`${doneN} / ${items.length}`;
+  const fill=document.getElementById('mission-bar-fill'); if(fill) fill.style.width=Math.round(doneN/items.length*100)+'%';
+  const ms=missionStreak(all);
+  const md=document.getElementById('mission-done');
+  if(md){ md.hidden=!all; if(all) md.textContent=`🎉 きょうのミッション、ぜんぶ達成！${ms>=2?`（${ms}日連続）`:''} また明日も待ってるよ。`; }
+  // 今週のスタンプ
+  const logged=new Set(L.concat(Q).map(l=>normDay(l.date)));
+  const dn=['月','火','水','木','金','土','日'];
+  const ws=document.getElementById('ws-row');
+  if(ws) ws.innerHTML=wk.map((d,i)=>{ const on=logged.has(d), fut=d>t; return `<div class="ws${on?' on':''}${d===t?' today':''}${fut?' future':''}" aria-label="${dn[i]}曜日 ${on?'記録あり':fut?'まだ先':'記録なし'}"><i aria-hidden="true">${on?'★':''}</i><span>${dn[i]}</span></div>`; }).join('');
+  const wc=document.getElementById('ws-count'); if(wc) wc.textContent=`${wk.filter(d=>logged.has(d)).length}/7日`;
+  // きょうのひとこと
+  const n=dailyNote(), dc=document.getElementById('daily-card'); if(dc) dc.hidden=false;
+  const chip=document.getElementById('daily-chip'); if(chip) chip.textContent=n.k;
+  const dt=document.getElementById('daily-text'); if(dt) dt.textContent=n.t;
+  const dg=document.getElementById('daily-go'); if(dg) dg.hidden=n.k!=='問い';
+}
+window.cpInboxUpdated=function(){ try{ renderEngage(); }catch(e){} };   // 連絡の読み込み・既読で、ミッションを更新
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) try{ renderEngage(); }catch(e){} });   // 日付をまたいで開いたとき
+
 /* ════════════ INIT ════════════ */
 /* 起動: 前回の取得結果（端末に保存。CP_CACHE は GitHub Pages 版の cp-api.js が提供）があれば、先にそれで画面を出し、
    裏で最新を取って、変わっていれば描画し直す。保存が無い・GAS 版では、従来どおり（最初の通信を待つ）。 */
@@ -1275,8 +1466,8 @@ async function initApply(data){
  return;
  }
 
- document.getElementById('hdr-user').textContent=
- (STUDENT.name||ME.displayName||ME.email)+(STUDENT.grade?` (${STUDENT.grade}年)`:'');
+ document.getElementById('hdr-user').textContent=headerWho();
+ renderEngage();
 
  // フィードフィルターチップのラベルを実際の学年・クラスで更新
  (function(){
@@ -1501,6 +1692,7 @@ async function submitInquiry(){
  if(INIT_DATA){ INIT_DATA.inquiryLogs=[saved,...(INIT_DATA.inquiryLogs||[])]; }
  renderInquiryRecent(INIT_DATA?.inquiryLogs||[saved]);
  resetForm('iq');
+ try{ renderEngage(); }catch(e){}
  } catch(e){
  toast('保存に失敗しました: '+(e.message||e),'err');
  } finally{
@@ -1731,6 +1923,7 @@ function renderGoalUpdated(scope,content){
  if(idx>=0) existing[idx]=entry; else existing.push(entry);
  if(INIT_DATA) INIT_DATA.goals=existing;
  renderGoalDisplay(existing);
+ try{ renderEngage(); }catch(e){}
 }
 
 function renderActivityRecent(activities){
@@ -1832,12 +2025,25 @@ async function initGradesTab(){
     if(!ys.includes(cy)) ys.push(cy);
     ys.sort();
     const sel=document.getElementById('mob-grade-year');
-    if(sel){ sel.innerHTML=ys.map(y=>`<option value="${esc(y)}">${esc(y)}年度</option>`).join(''); sel.value=cy; }
+    if(sel){ sel.innerHTML=ys.map(y=>`<option value="${esc(y)}">${esc(y)}年度${y===cy?'（今年度）':''}</option>`).join(''); sel.value=cy; }
+    updateYearButtons();
     renderMobGrades(grades.subjects||[], cy);
   }catch(e){
     console.error('grades load error',e);
     if(list) list.innerHTML='<p class="empty-note" style="text-align:center;padding:20px;">成績の読み込みに失敗しました</p>';
   }
+}
+
+function onGradeYearChange(y){ updateYearButtons(); renderMobGrades(GRADES_DATA&&GRADES_DATA.subjects||[], y); }
+function stepGradeYear(d){
+  const sel=document.getElementById('mob-grade-year'); if(!sel) return;
+  const i=sel.selectedIndex+d; if(i<0||i>=sel.options.length) return;
+  sel.selectedIndex=i; onGradeYearChange(sel.value);
+}
+function updateYearButtons(){
+  const sel=document.getElementById('mob-grade-year'); if(!sel) return;
+  const p=document.getElementById('yr-prev'), n=document.getElementById('yr-next');
+  if(p) p.disabled=sel.selectedIndex<=0; if(n) n.disabled=sel.selectedIndex>=sel.options.length-1;
 }
 
 function renderMobGrades(subjects, year){
@@ -1858,7 +2064,7 @@ function renderMobGrades(subjects, year){
   const ov=document.getElementById('mob-grades-overview');
   if(ov){
     const total=counts.A+counts.B+counts.C+counts.D+counts.E;
-    const GCOL={A:'#16a34a',B:'#2563eb',C:'#d97706',D:'#ea580c',E:'#dc2626'};
+    const GCOL={A:'var(--cp-grade-a)',B:'#1d4ed8',C:'#b45309',D:'#c2410c',E:'var(--cp-grade-e)'};   // 白い文字を載せる面: 十分なコントラストの濃い色
     const segs=total?['A','B','C','D','E'].filter(k=>counts[k]>0).map(k=>`<div style="flex:${counts[k]};background:${GCOL[k]};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;min-width:18px;">${k} ${counts[k]}</div>`).join(''):'';
     ov.innerHTML=utCount?`
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${total?'8px':'0'};">
@@ -1884,7 +2090,7 @@ function renderMobGrades(subjects, year){
     const others=d.filter(x=>['PT','PF','ST'].includes(x.type)&&x.absence!=='yes');
     const noUT=noUtSet.has(s.subjectName)||noUtSet.has(s.subjectCode);
     const sc=SUBJECT_COLORS&&SUBJECT_COLORS[s.subjectName];
-    const accentColor=sc?sc.c:'#475569';
+    const accentColor=sc?`color-mix(in srgb, ${sc.c} 55%, var(--cp-text))`:'var(--cp-text-2)';   // 教科の色を、ライト／ダークどちらでも読める濃さにする
 
     /* subject-level UT summary + detail chips */
     let utSummaryHtml='', utDetailHtml='';
@@ -2242,7 +2448,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 <script>
 (function () {
   if (window.__cpInbox) return; window.__cpInbox = true;
-  var items = [], unread = 0, lastUnread = null, bell, badge, panel, list, timer, problem = '';
+  var items = [], unread = 0, lastUnread = null, bell, badge, panel, list, timer, problem = '', loaded = false;
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
   function safeUrl(u) { return /^https?:\/\/[^\s]+$/i.test(String(u || '')) ? u : ''; }
@@ -2293,7 +2499,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     try { if (sessionStorage.getItem('cp_imp_seen') === '1') imp = 0; } catch (e) {}
     if (imp && !el) {
       el = document.createElement('div'); el.id = 'cp-imp-banner'; el.className = 'cp-notice warn';
-      el.innerHTML = '<span class="material-symbols-rounded">campaign</span><div class="cp-notice-body"><b>重要なお知らせが ' + imp + ' 件あります</b></div><span class="cp-notice-act" style="padding:4px 12px;border:1px solid currentColor;border-radius:999px;font-weight:700">確認する</span>';
+      el.innerHTML = '<span class="material-symbols-rounded">campaign</span><div class="cp-notice-body"><b>重要なお知らせが ' + imp + ' 件あります</b></div><span class="cp-notice-act">確認する</span>';
       el.onclick = function () { open(); };
       var host = document.querySelector('main') || document.body; host.insertBefore(el, host.firstChild);
     } else if (!imp && el) el.remove();
@@ -2301,11 +2507,11 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 
   function load(first) {
     return run('getMyMessages').then(function (r) {
-      if (r && r.disabled) { if (bell) bell.style.display = 'none'; clearInterval(timer); return; }   // Bridge 未接続（設定なし）だけは、ベルを出さない
+      if (r && r.disabled) { loaded = true; if (bell) bell.style.display = 'none'; clearInterval(timer); changed(); return; }   // Bridge 未接続（設定なし）だけは、ベルを出さない
       problem = (r && r.problem) || '';   // 接続・登録の問題は、ベルを消さずに、中で理由を知らせる
       items = (r && r.messages) || []; unread = (r && r.unread) || 0;
       if (!first && lastUnread !== null && unread > lastUnread) { toast('新しいお知らせがあります'); bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring'); }
-      lastUnread = unread; setBadge(); render(); banner(); changed();
+      lastUnread = unread; setBadge(); render(); banner(); loaded = true; changed(); changed();
     }).catch(function (e) {
       // 生徒以外（教員の確認画面など）では出さない。それ以外の一時的な失敗では、ベルを消さずに、理由を出す
       if (/生徒として|ログインしてください/.test(String((e && e.message) || e))) { if (first && bell) bell.style.display = 'none'; return; }
@@ -2334,7 +2540,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
   }
 
   function build() {
-    var host = document.querySelector('#hdr-user'); host = host ? host.parentElement : (document.querySelector('header .user-meta') || document.querySelector('header .header-inner'));
+    var host = document.querySelector('#cp-bell-host') || document.querySelector('#hdr-user'); host = host && host.id === 'hdr-user' ? host.parentElement : (host || (document.querySelector('header .user-meta') || document.querySelector('header .header-inner')));
     if (!host) return;
     bell = document.createElement('button'); bell.className = 'cp-bell cp-keep'; bell.type = 'button'; bell.setAttribute('aria-label', 'お知らせ');
     bell.innerHTML = '<span class="material-symbols-rounded">notifications</span><span class="cp-badge" hidden></span>';
@@ -2353,6 +2559,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
         run('markMessageRead', [id]).catch(function () {});
       }
     });
+    window.cpInboxState = function () { return { ready: loaded, enabled: !!bell && bell.style.display !== 'none', unread: unread, problem: !!problem }; };   // 画面側（ミッション）が、連絡の状態を読む
     window.cpInboxApi = {
       get: function () { return { items: items, unread: unread, problem: problem }; },
       reload: function () { return load(false); },

@@ -459,14 +459,15 @@ input[type=checkbox], input[type=radio], input[type=range] { accent-color: var(-
 
 /* ───────── 16. お知らせバー ───────── */
 .cp-notice {
-  display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--cp-r-md);
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--cp-r-md);
   border: 1px solid var(--cp-info-bd); background: var(--cp-info-bg); color: var(--cp-info-fg); font-size: 13px;
 }
 .cp-notice.warn { border-color: var(--cp-warn-bd); background: var(--cp-warn-bg); color: var(--cp-warn-fg); }
 .cp-notice.ok   { border-color: var(--cp-ok-bd);   background: var(--cp-ok-bg);   color: var(--cp-ok-fg); }
-.cp-notice .cp-notice-body { flex: 1; min-width: 0; }
+.cp-notice .cp-notice-body { flex: 1; min-width: 0; line-height: 1.45; }
+.cp-notice > .material-symbols-rounded { flex: none; font-size: 22px; }
 .cp-notice .cp-notice-body small { display: block; opacity: .85; margin-top: 2px; }
-.cp-notice a.cp-notice-act { flex-shrink: 0; font-weight: 700; white-space: nowrap; text-decoration: none; padding: 4px 12px; border-radius: var(--cp-r-pill); background: var(--cp-surface); border: 1px solid currentColor; color: inherit; }
+.cp-notice .cp-notice-act { flex-shrink: 0; font-weight: 700; white-space: nowrap; text-decoration: none; padding: 0 14px; min-height: 32px; display: inline-flex; align-items: center; line-height: 1; border-radius: var(--cp-r-pill); background: var(--cp-surface); border: 1px solid currentColor; color: inherit; }
 
 /* ───────── 17. v2 の新部品（Bridge と同じ「グループ化された一覧」） ───────── */
 /* 使い方:  <div class="cp-group"><div class="cp-row">…</div><div class="cp-row">…</div></div> */
