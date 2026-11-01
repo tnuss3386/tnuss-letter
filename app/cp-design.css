@@ -510,6 +510,20 @@ a.cp-row:hover, button.cp-row:hover, .cp-row.tappable:hover { background: var(--
 }
 :root[data-theme="dark"] img:not([src$=".svg"]):not(.cp-keep-img) { filter: brightness(.9); }
 
+/* テーマカラーの選択（cp-ui の cpMountAccentPicker が作るボタン） */
+.cp-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.cp-sw { width: 38px; height: 38px; border-radius: 50%; border: 3px solid transparent; background: var(--sw, #0d2850); cursor: pointer; padding: 0; box-shadow: 0 0 0 1px var(--cp-border-strong); position: relative; }
+.cp-sw[aria-pressed="true"] { border-color: var(--cp-surface); box-shadow: 0 0 0 3px var(--sw, #0d2850); }
+.cp-sw[aria-pressed="true"]::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 16px; }
+
+/* ───────── 18b. スマホ: タップでの自動拡大を防ぐ ─────────
+   iPhone は、16px より小さい入力欄を押すと、画面を勝手に拡大する。また、すばやい2回タップでも拡大する。
+   → タッチ端末では、入力欄を16px以上にし、2回タップの拡大は無効にする（ピンチでの拡大は、見えにくい人のために残す）。 */
+@media (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea { font-size: 16px !important; }
+  html, body, button, a, input, select, textarea, label, summary, [role=button] { touch-action: manipulation; }
+}
+
 /* ───────── 19. 印刷は常にライト配色 ───────── */
 @media print {
   :root { --cp-bg: #fff; --cp-surface: #fff; --cp-text: #111; --cp-text-2: #333; --cp-muted: #444; --cp-border: #bbb; --cp-ink: #0d2850; --cp-hover: #f2f2f2; --cp-navy: #0d2850; }

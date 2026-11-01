@@ -18,6 +18,7 @@
     var m = document.querySelector('meta[name="theme-color"]:not([media])');
     if (!m && document.head) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
     if (m) m.content = dark ? '#181c22' : '#ffffff';
+    applyAccent();
     syncCharts();
   }
   function syncCharts() {
@@ -25,6 +26,53 @@
     try { Chart.defaults.color = cpColor('--cp-text-2'); Chart.defaults.borderColor = cpColor('--cp-border'); } catch (e) {}
   }
   window.cpIsDark = function () { var t = doc.getAttribute('data-theme'); return t === 'dark' || (t !== 'light' && !!window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
+  /* ── テーマカラー（アクセントの色）。紺が標準。色は、ライト／ダークそれぞれで、文字とのコントラストを確保した値 ── */
+  var ACCENTS = {
+    navy:   { name: 'ネイビー', sw: '#0d2850', l: null, d: null },   // 標準（CSS の既定値のまま）
+    blue:   { name: 'ブルー',   sw: '#1d4ed8', l: { navy: '#1d4ed8', ink: '#1d4ed8', tint: '#1d4ed8', on: '#ffffff' }, d: { navy: '#3b6fd8', ink: '#9ec0ff', tint: '#9ec0ff', on: '#0b1d3a' } },
+    green:  { name: 'グリーン', sw: '#166534', l: { navy: '#166534', ink: '#166534', tint: '#166534', on: '#ffffff' }, d: { navy: '#2a8247', ink: '#8fe3a5', tint: '#8fe3a5', on: '#0c2a17' } },
+    pink:   { name: 'ピンク',   sw: '#be185d', l: { navy: '#be185d', ink: '#be185d', tint: '#be185d', on: '#ffffff' }, d: { navy: '#c2417f', ink: '#ffa6cf', tint: '#ffa6cf', on: '#3a0a22' } },
+    orange: { name: 'オレンジ', sw: '#b45309', l: { navy: '#b45309', ink: '#b45309', tint: '#b45309', on: '#ffffff' }, d: { navy: '#b25a10', ink: '#ffc98a', tint: '#ffc98a', on: '#3a1d00' } },
+    purple: { name: 'パープル', sw: '#6d28d9', l: { navy: '#6d28d9', ink: '#6d28d9', tint: '#6d28d9', on: '#ffffff' }, d: { navy: '#7c4ddb', ink: '#d2b8ff', tint: '#d2b8ff', on: '#2a0f5a' } },
+    gray:   { name: 'グレー',   sw: '#334155', l: { navy: '#334155', ink: '#334155', tint: '#334155', on: '#ffffff' }, d: { navy: '#475569', ink: '#cbd5e1', tint: '#cbd5e1', on: '#111827' } }
+  };
+  var ACC_PROPS = ['--cp-navy', '--cp-navy-600', '--cp-navy-50', '--cp-ink', '--cp-tint', '--cp-on-tint', '--cp-tint-soft', '--cp-tint-mid', '--cp-accent-ink'];
+  function rgba(hex, a) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  function mixWhite(hex, k) { var n = parseInt(hex.slice(1), 16), f = function (v) { return Math.round(v + (255 - v) * k); }; return 'rgb(' + f(n >> 16 & 255) + ',' + f(n >> 8 & 255) + ',' + f(n & 255) + ')'; }
+  function applyAccent() {
+    var key = ''; try { key = localStorage.getItem('cp-accent-m') || ''; } catch (e) {}
+    var a = ACCENTS[key], st = doc.style, i;
+    for (i = 0; i < ACC_PROPS.length; i++) st.removeProperty(ACC_PROPS[i]);
+    if (!a || !a.l) return;
+    var dark = window.cpIsDark && cpIsDark(), v = dark ? a.d : a.l;
+    st.setProperty('--cp-navy', v.navy); st.setProperty('--cp-navy-600', mixWhite(v.navy, .14)); st.setProperty('--cp-navy-50', rgba(v.tint, dark ? .14 : .08));
+    st.setProperty('--cp-ink', v.ink); st.setProperty('--cp-tint', v.tint); st.setProperty('--cp-on-tint', v.on);
+    st.setProperty('--cp-tint-soft', rgba(v.tint, dark ? .16 : .1)); st.setProperty('--cp-tint-mid', rgba(v.tint, dark ? .26 : .18));
+    st.setProperty('--cp-accent-ink', v.ink);
+  }
+  window.CP_ACCENTS = ACCENTS;
+  window.cpGetAccent = function () { try { return localStorage.getItem('cp-accent-m') || 'navy'; } catch (e) { return 'navy'; } };
+  window.cpSetAccent = function (k) {
+    try { if (!k || k === 'navy') localStorage.removeItem('cp-accent-m'); else localStorage.setItem('cp-accent-m', k); } catch (e) {}
+    applyAccent(); syncCharts();
+    document.dispatchEvent(new CustomEvent('cp-accent-m'));
+  };
+  /* 色えらびの部品: el の中に、色のボタンを並べる（押すと、すぐ全体に反映。この端末に保存） */
+  window.cpMountAccentPicker = function (el) {
+    if (!el) return;
+    function draw() {
+      var cur = window.cpGetAccent();
+      el.innerHTML = '';
+      el.className = (el.className ? el.className + ' ' : '') + 'cp-swatches'; el.setAttribute('role', 'group'); el.setAttribute('aria-label', 'テーマカラー');
+      Object.keys(ACCENTS).forEach(function (k) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'cp-sw cp-keep'; b.style.setProperty('--sw', ACCENTS[k].sw); b.setAttribute('aria-pressed', String(k === cur)); b.setAttribute('aria-label', ACCENTS[k].name); b.title = ACCENTS[k].name;
+        b.onclick = function () { window.cpSetAccent(k); draw(); };
+        el.appendChild(b);
+      });
+    }
+    draw();
+  };
   window.cpColor = function (v) { return getComputedStyle(doc).getPropertyValue(v).trim(); };
   window.cpSetTheme = function (t) {
     try { if (t === 'auto') localStorage.removeItem('cp-theme'); else localStorage.setItem('cp-theme', t); } catch (e) {}
@@ -33,6 +81,7 @@
   window.cpGetTheme = function () { try { return localStorage.getItem('cp-theme') || 'auto'; } catch (e) { return 'auto'; } };
   var saved = ''; try { saved = localStorage.getItem('cp-theme') || ''; } catch (e) {}
   applyTheme(saved);
+  applyAccent();
   if (window.matchMedia) { try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { applyTheme(window.cpGetTheme() === 'auto' ? '' : window.cpGetTheme()); }); } catch (e) {} }
   document.addEventListener('DOMContentLoaded', syncCharts);
   window.addEventListener('load', syncCharts);

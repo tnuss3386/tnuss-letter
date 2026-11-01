@@ -527,6 +527,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <button type="button" data-t="dark" onclick="setThemeUI('dark')">ダーク</button>
  </span>
  </div></div>
+ <div class="cp-group" style="margin-top:10px"><div class="cp-row" style="display:block">
+ <div class="cp-row-main"><span class="cp-row-title" id="accent-title">テーマカラー</span><span class="cp-row-sub" style="display:block;margin-bottom:10px">好きな色を選ぶと、アプリ全体の色が変わります（この端末に保存）</span></div>
+ <div id="accent-picker" aria-labelledby="accent-title"></div>
+ </div></div>
  </div><!-- /tab-home -->
 
  <!-- ══ TAB: 学習ログ ══ -->
@@ -1363,9 +1367,8 @@ function weekDays(){   // 今週の月曜〜日曜（yyyy-mm-dd）
 }
 function headerWho(){
   const st=STUDENT||{}, nm=String(st.name||ME&&ME.displayName||ME&&ME.email||'');
-  const first=nm.split(/[\s　]+/).filter(String).pop()||nm;
   const cls=st.grade?`${st.grade}年${st.class?st.class+'組':''}`:'';
-  return nm?`${first}さん${cls?' ・ '+cls:''}`:'';
+  return nm?`${nm}${cls?'（'+cls+'）':''}`:'';   // 例: 生徒 花子（3年2組）
 }
 function dailyNote(){
   const d=new Date(); d.setHours(0,0,0,0);
@@ -1401,9 +1404,10 @@ function renderEngage(){
   const inbox=window.cpInboxState?cpInboxState():null;
   const items=[
    {ic:'import_contacts',t:'今日の学習を1件記録する',s:learnToday?'記録できました':'教科・時間・ひとこと',done:learnToday,go:'learning'},
-   {ic:'search',t:'探究を1件記録する',s:inquiryWeek?'今週は記録できました':'今週のうちに1件',done:inquiryWeek,go:'inquiry'},
-   {ic:'target',t:'今月の目標を決める',s:goalMonth?'設定ずみ':'今月の目標がまだ空です',done:goalMonth,go:'goal'},
   ];
+  // 探究のミッションは、ゼミに所属している生徒だけ（所属は、ゼミの情報で確認してから出す）
+  if(window.__semis&&window.__semis.length) items.push({ic:'search',t:'探究を1件記録する',s:inquiryWeek?'今週は記録できました':'今週のうちに1件',done:inquiryWeek,go:'inquiry'});
+  items.push({ic:'target',t:'今月の目標を決める',s:goalMonth?'設定ずみ':'今月の目標がまだ空です',done:goalMonth,go:'goal'});
   if(inbox&&inbox.ready&&inbox.enabled) items.push({ic:'notifications',t:'連絡を確認する',s:inbox.unread?`未読が ${inbox.unread} 件あります`:'すべて確認ずみ',done:!inbox.unread&&!inbox.problem,go:'bell'});
   const doneN=items.filter(i=>i.done).length, all=doneN===items.length;
   const card=document.getElementById('mission-card'); if(card) card.hidden=false;
@@ -1427,7 +1431,14 @@ function renderEngage(){
   const dt=document.getElementById('daily-text'); if(dt) dt.textContent=n.t;
   const dg=document.getElementById('daily-go'); if(dg) dg.hidden=n.k!=='問い';
 }
-window.cpInboxUpdated=function(){ try{ renderEngage(); }catch(e){} };   // 連絡の読み込み・既読で、ミッションを更新
+window.cpInboxAfter=function(){ try{ renderEngage(); }catch(e){} };   // 連絡の読み込み・既読で、ミッションを更新（cp-msglist が呼ぶ）
+/* ゼミの所属を、いちど確認する（探究のミッションを出すかどうか）。失敗したときは、出さない */
+function loadSeminars(){
+  try{
+    google.script.run.withSuccessHandler(function(h){ window.__semis=(h&&h.seminars)||[]; try{ renderEngage(); }catch(e){} })
+      .withFailureHandler(function(){ window.__semis=[]; }).zemiGetHome();
+  }catch(e){ window.__semis=[]; }
+}
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) try{ renderEngage(); }catch(e){} });   // 日付をまたいで開いたとき
 
 /* ════════════ INIT ════════════ */
@@ -1468,6 +1479,7 @@ async function initApply(data){
 
  document.getElementById('hdr-user').textContent=headerWho();
  renderEngage();
+ loadSeminars();
 
  // フィードフィルターチップのラベルを実際の学年・クラスで更新
  (function(){
@@ -1564,6 +1576,7 @@ function setThemeUI(t){
 }
 document.addEventListener('DOMContentLoaded',function(){
  setThemeUI(window.cpGetTheme?cpGetTheme():'auto');
+ if(window.cpMountAccentPicker) cpMountAccentPicker(document.getElementById('accent-picker'));
  // すでにホーム画面のアプリとして開いているときは、追加の案内を出さない
  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
  var a=document.getElementById('a2hs'); if(a&&!standalone) a.style.display='';
@@ -2207,6 +2220,12 @@ init();
 .cml-atts { display: flex; flex-wrap: wrap; gap: 8px; }
 .cml-warn { font-size: 12px; color: var(--cp-warn-fg); background: var(--cp-warn-bg); border: 1px solid var(--cp-warn-bd); border-radius: 8px; padding: 6px 10px; margin-top: 6px; }
 .cml-more { margin: 10px auto 0; display: flex; }
+/* ページ送り（10件ごと） */
+.cml-pager { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 6px; }
+.cml-pager button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--cp-border-strong); background: var(--cp-surface); color: var(--cp-text); font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; width: auto; flex: none; }
+.cml-pager button:disabled { opacity: .4; cursor: default; }
+.cml-pager .pg { font-size: 13px; font-weight: 700; color: var(--cp-text-2); min-width: 4.5em; text-align: center; }
+.cml-mlist .cml-pager { position: sticky; bottom: 0; background: var(--cp-bg); border-top: 1px solid var(--cp-border); }
 .cml-empty { text-align: center; color: var(--cp-muted); padding: 32px 12px; font-size: 13px; }
 .cml-foot { text-align: center; color: var(--cp-muted); font-size: 12px; margin-top: 10px; }
 .cml-mail { display: grid; grid-template-columns: minmax(250px, 340px) minmax(0, 1fr); border: 1px solid var(--cp-border); border-radius: 12px; overflow: hidden; background: var(--cp-surface); height: min(68vh, 620px); min-height: 360px; }
@@ -2262,7 +2281,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 
   function mount(root, opts) {
     opts = opts || {};
-    var items = [], extra = {}, filter = 'all', shown = PAGE, selId = null;
+    var items = [], extra = {}, filter = 'all', page = 0, selId = null;
     var openIds = {};
 
     function card(m) {
@@ -2284,6 +2303,13 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
         '</div>' + ns + '</div>';
     }
 
+    // 10件ごとのページ送り。件数が10件以内なら、何も出さない
+    function pager(total) {
+      var pages = Math.ceil(total / PAGE); if (pages <= 1) return '';
+      return '<nav class="cml-pager" aria-label="ページ送り"><button type="button" class="cp-keep" data-pg="-1"' + (page <= 0 ? ' disabled' : '') + '>‹ 前へ</button>' +
+        '<span class="pg" aria-live="polite">' + (page + 1) + ' / ' + pages + '</span>' +
+        '<button type="button" class="cp-keep" data-pg="1"' + (page >= pages - 1 ? ' disabled' : '') + '>次へ ›</button></nav>';
+    }
     function draw() {
       if (extra.loading) { root.innerHTML = '<div class="cml-empty">読み込み中…</div>'; return; }
       if (extra.problem) { root.innerHTML = '<div class="cml-empty" role="alert">' + esc(extra.problem) + '</div>'; return; }
@@ -2295,7 +2321,8 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
         (opts.onMarkAll && unread ? '<button type="button" class="btn-secondary cp-keep cml-all" data-all="1">すべて既読にする</button>' : '') + '</div>';
       if (opts.layout === 'mail') {
         if (!items.length) { root.innerHTML = bar + '<div class="cml-empty">' + esc(extra.empty || 'お知らせはありません') + '</div>'; return; }
-        var mlist = list.slice(0, LIMIT);
+        var maxPage = Math.max(0, Math.ceil(list.length / PAGE) - 1); if (page > maxPage) page = maxPage;
+        var mlist = list.slice(page * PAGE, page * PAGE + PAGE);
         var sel = items.filter(function (m) { return String(m.id) === String(selId); })[0] || null;
         var rows = mlist.map(function (m) {
           var imp = m.priority === 'important' || m.category === '緊急';
@@ -2303,6 +2330,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
             '<div class="r1"><b>' + esc(m.senderName || m.category || 'お知らせ') + '</b><span>' + esc(shortWhen(m.createdAt)) + '</span></div>' +
             '<div class="r2">' + (imp ? '<span class="imp">重要</span>' : '') + esc(m.title) + '</div><div class="r3">' + esc(String(m.body || '').replace(/\s+/g, ' ').slice(0, 70)) + '</div></button>';
         }).join('') || '<div class="cml-empty">該当するお知らせはありません</div>';
+        rows += pager(list.length);
         var det;
         if (sel) {
           var atts = (sel.attachments || []).map(safeUrl).filter(String);
@@ -2325,8 +2353,8 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
       if (!items.length) body = '<div class="cml-empty">' + esc(extra.empty || 'お知らせはありません') + '</div>';
       else if (!list.length) body = '<div class="cml-empty">未読のお知らせはありません</div>';
       else {
-        body = '<div class="cml-list">' + list.slice(0, shown).map(card).join('') + '</div>';
-        if (list.length > shown) body += '<button type="button" class="btn-secondary cp-keep cml-more" data-more="1">もっと見る（残り ' + (list.length - shown) + ' 件）</button>';
+        var maxP = Math.max(0, Math.ceil(list.length / PAGE) - 1); if (page > maxP) page = maxP;
+        body = '<div class="cml-list">' + list.slice(page * PAGE, page * PAGE + PAGE).map(card).join('') + '</div>' + pager(list.length);
       }
       var foot = items.length >= LIMIT ? '<div class="cml-foot">新しい ' + LIMIT + ' 件までを表示しています。これより古いお知らせは表示されません。</div>' : '';
       root.innerHTML = bar + body + foot;
@@ -2347,8 +2375,8 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     root.addEventListener('click', function (e) {
       var rowEl = e.target.closest('[data-mid]'); if (rowEl) { selectMail(rowEl.getAttribute('data-mid')); return; }
       if (e.target.closest('[data-back]')) { selId = null; draw(); return; }
-      var f = e.target.closest('[data-f]'); if (f) { filter = f.getAttribute('data-f'); shown = PAGE; draw(); return; }
-      if (e.target.closest('[data-more]')) { shown += PAGE; draw(); return; }
+      var f = e.target.closest('[data-f]'); if (f) { filter = f.getAttribute('data-f'); page = 0; draw(); return; }
+      var pg = e.target.closest('[data-pg]'); if (pg) { page += Number(pg.getAttribute('data-pg')); draw(); var ml = root.querySelector('.cml-mlist'); if (ml) ml.scrollTop = 0; else if (root.scrollIntoView) root.scrollIntoView({ block: 'start' }); return; }
       if (e.target.closest('[data-all]')) { if (opts.onMarkAll) opts.onMarkAll(); return; }
       if (e.target.closest('a')) return;
       var c = e.target.closest('.cml-msg'); if (c) toggle(c);
