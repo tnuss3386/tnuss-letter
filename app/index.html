@@ -42,7 +42,10 @@ header {
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .brand-text strong { color: var(--cp-ink); font-size: 1.05rem; font-weight: 800; letter-spacing: .2px; white-space: nowrap; }
 .brand-text small { color: var(--cp-text-2); font-size: 11.5px; }
-#hdr-user { display: block; font-size: 12px; color: var(--cp-text-2); max-width: 62vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-end { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.hdr-who { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; min-width: 0; max-width: 46vw; text-align: right; }
+.hdr-who b { font-size: 13px; font-weight: 700; color: var(--cp-ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hdr-who small { font-size: 11px; color: var(--cp-text-2); white-space: nowrap; }
 .hdr-right { display: flex; align-items: center; gap: 8px; flex: none; }
 .hdr-right .cp-bell { margin: 0; }
 
@@ -203,24 +206,39 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .stats-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .streak-block { display: flex; flex-direction: column; gap: 2px; }
 .streak-flame-num { display: flex; align-items: baseline; gap: 4px; line-height: 1; }
-.flame-icon { font-size: 24px; display: inline-block; animation: flicker 2.2s ease-in-out infinite; transform-origin: bottom center; }
+.flame-icon { font-size: 30px; display: inline-block; animation: flicker 2.2s ease-in-out infinite; transform-origin: bottom center; }
 @keyframes flicker { 0%,100%{transform:rotate(-4deg) scale(1)} 50%{transform:rotate(4deg) scale(1.12)} }
-.streak-num { font-size: 40px; font-weight: 900; color: var(--gold); line-height: 1; letter-spacing: -1px; }
+.week-heatmap.long { grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.week-heatmap.long .wday-dot { height: 28px; font-size: 11px; border-radius: 7px; }
+.week-heatmap.long .wday-dot em { display: none; }
+.wday-dot em { font-style: normal; font-size: 8px; font-weight: 600; opacity: .75; }
+.streak-num { font-size: 44px; font-weight: 900; color: var(--gold); line-height: 1; letter-spacing: -1px; }
 .streak-suffix { font-size: 14px; font-weight: 700; color: rgba(212,175,55,.8); align-self: flex-end; padding-bottom: 4px; }
-.streak-label { font-size: 10px; color: rgba(255,255,255,.5); font-weight: 600; letter-spacing: .5px; margin-top: 2px; }
+.streak-label { font-size: 11px; color: rgba(255,255,255,.7); font-weight: 700; letter-spacing: .3px; margin-bottom: 4px; }
+.streak-next { margin-bottom: 12px; }
+.sn-text { font-size: 12px; color: rgba(255,255,255,.85); margin-bottom: 5px; }
+.sn-text b { color: var(--gold); font-weight: 800; }
+.sn-bar { height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); overflow: hidden; }
+.sn-bar span { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #e9c75a, #d4af37); transition: width .5s ease; }
+.hm-legend { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: rgba(255,255,255,.6); margin-bottom: 4px; }
+.hm-keys { display: inline-flex; align-items: center; gap: 4px; }
+.hm-keys i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-left: 6px; }
+.hm-keys i.k0 { background: rgba(255,255,255,.12); margin-left: 0; }
+.hm-keys i.k1 { background: rgba(56,189,248,.55); }
+.hm-keys i.k3 { background: rgba(212,175,55,.8); }
 .stats-mini-row { display: flex; gap: 16px; align-items: center; }
 .stat-divider { width: 1px; height: 32px; background: rgba(255,255,255,.15); }
 .stat-item { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .stat-item .si-val { font-size: 22px; font-weight: 800; color: #fff; line-height: 1; }
 .stat-item .si-lbl { font-size: 10px; color: rgba(255,255,255,.45); font-weight: 600; }
 /* 30-day heatmap grid */
-.week-heatmap { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; margin-bottom: 12px; }
+.week-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 8px; }
 .wday { display: flex; }
 .wday-dot {
- width: 100%; aspect-ratio: 1; border-radius: 5px;
- background: rgba(255,255,255,.06);
- display: flex; align-items: center; justify-content: center;
- font-size: 9px; font-weight: 800; color: rgba(255,255,255,.22);
+ width: 100%; height: 36px; border-radius: 9px;
+ background: rgba(255,255,255,.1);
+ display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15;
+ font-size: 12px; font-weight: 800; color: rgba(255,255,255,.7);
  transition: background .2s; border: 1.5px solid transparent;
 }
 /* 記録あり（時間強度 i1/i2/i3） */
@@ -362,13 +380,13 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 #ll-subj-row { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(5.4em, 1fr)); gap: 6px !important; }
 #ll-subj-row .h-btn { flex: none; min-width: 0; width: 100%; height: 42px; padding: 0 4px; font-size: clamp(12px, 3.5vw, 14px); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 校内成績の「表示する年度」: ラベル + 前へ／次へ + 大きな選択欄 */
-.yr-box { display: flex; flex-direction: column; align-items: stretch; gap: 6px; background: var(--cp-hover); border-radius: 12px; padding: 8px 10px; margin-bottom: 10px; }
-.yr-label { font-size: 12px; font-weight: 700; color: var(--cp-text-2); }
-.yr-stepper { display: flex; align-items: center; gap: 8px; }
-.yr-btn { width: 40px; height: 40px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--cp-surface); color: var(--cp-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
-.yr-btn .material-symbols-rounded { font-size: 24px; }
+.yr-box { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0; margin-bottom: 10px; }
+.yr-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.yr-stepper { display: flex; align-items: center; gap: 6px; width: 100%; }
+.yr-btn { width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--cp-surface); color: var(--cp-ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.yr-btn .material-symbols-rounded { font-size: 22px; }
 .yr-btn:disabled { opacity: .35; cursor: default; }
-#mob-grade-year { flex: 1; width: auto; min-width: 0; height: 40px; padding: 0 28px 0 12px; font-size: 16px; font-weight: 800; color: var(--cp-ink); text-align: center; text-align-last: center; border-radius: 10px; background-color: var(--cp-surface); }
+#mob-grade-year { flex: 1; width: auto; min-width: 0; height: 34px; padding: 0 24px 0 10px; font-size: 16px; font-weight: 800; color: var(--cp-ink); text-align: center; text-align-last: center; border-radius: 10px; background-color: var(--cp-surface); }
 /* ── スマホ版の整え（PC版と同じボタン・枠線・フォーカスの規則） ── */
 .h-btn { white-space: nowrap; font-size: 13px; padding-left: 4px; padding-right: 4px; min-width: 0; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--cp-navy); outline-offset: 2px; }
@@ -415,10 +433,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  </svg>
  <div class="brand-text">
  <strong>CareerPort</strong>
- <small id="hdr-user">読み込み中...</small>
  </div>
  </div>
+ <div class="hdr-end">
+ <div id="hdr-user" class="hdr-who" aria-label="ログイン中の生徒"><b>読み込み中...</b></div>
  <div id="cp-bell-host" class="hdr-right"></div>
+ </div>
 </header>
 
 <!-- Main -->
@@ -439,12 +459,12 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  <div class="stats-card" id="ll-stats-card">
  <div class="stats-top">
  <div class="streak-block">
+ <div class="streak-label">学習の連続記録</div>
  <div class="streak-flame-num">
  <span class="flame-icon" id="flame-icon">🔥</span>
  <span class="streak-num" id="streak-num">0</span>
- <span class="streak-suffix">日</span>
+ <span class="streak-suffix">日連続</span>
  </div>
- <div class="streak-label">LEARNING STREAK</div>
  </div>
  <div class="stats-mini-row">
  <div class="stat-item">
@@ -458,7 +478,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--cp-navy); box-sh
  </div>
  </div>
  </div>
- <div class="week-heatmap" id="week-heatmap"></div>
+ <div class="streak-next"><div class="sn-text" id="streak-next-text"></div><div class="sn-bar" aria-hidden="true"><span id="streak-next-fill"></span></div></div>
+ <div class="week-heatmap" id="week-heatmap" role="img" aria-label="直近14日の学習記録"></div>
+ <div class="hm-legend" aria-hidden="true"><span id="hm-from">14日前</span><span class="hm-keys"><i class="k0"></i>なし<i class="k1"></i>記録あり<i class="k3"></i>連続中</span><span>今日</span></div>
  <div class="moti-msg" id="moti-msg">読み込み中...</div>
  </div>
  </div>
@@ -1136,14 +1158,21 @@ function computeStats(logs){
 function renderStats(stats){
  const sn=document.getElementById('streak-num'); if(sn) sn.textContent=stats.streak;
  const fi=document.getElementById('flame-icon'); if(fi) fi.textContent=(stats.streak===0&&stats.streakAtRisk)?'📝':'🔥';
+ const MS=[3,7,14,30,60,100,365], nxt=MS.find(m=>m>stats.streak), prv=[0].concat(MS).filter(m=>m<=stats.streak).pop();
+ const nt=document.getElementById('streak-next-text'), nf=document.getElementById('streak-next-fill');
+ if(nt) nt.innerHTML=nxt?`<b>${nxt}日連続</b>まで あと <b>${nxt-stats.streak}</b> 日`:'<b>1年連続</b>を達成しました！';
+ if(nf) nf.style.width=(nxt?Math.round((stats.streak-prv)/(nxt-prv)*100):100)+'%';
  const mh=document.getElementById('month-hours'); if(mh){ const v=stats.monthHours; mh.textContent=v===0?'0':(v%1===0?String(v):v.toFixed(1)); }
  const te=document.getElementById('total-entries'); if(te) te.textContent=stats.total;
 
  // 30日グリッドをレンダリング
- const wh=document.getElementById('week-heatmap');
- if(wh) wh.innerHTML=(stats.grid||[]).map(d=>{
+ const wh=document.getElementById('week-heatmap'), long=stats.streak>=14;   // 14日以上続いたら、30日分を表示
+ if(wh){ wh.classList.toggle('long',long); wh.setAttribute('aria-label',long?'直近30日の学習記録':'直近14日の学習記録'); }
+ const hl=document.getElementById('hm-from'); if(hl) hl.textContent=long?'30日前':'14日前';
+ if(wh) wh.innerHTML=(stats.grid||[]).slice(long?-30:-14).map(d=>{
+ const wd='日月火水木金土'[new Date(d.ds+'T00:00:00').getDay()];
  const iCls=d.intensity>=3?'i3':d.intensity>=2?'i2':d.intensity>=1?'i1':'';
- return `<div class="wday"><div class="wday-dot ${d.hasLog?(d.inStreak?'streak-day':'has-log'):''} ${iCls} ${d.isToday?'today-ring':''}" title="${d.ds}${d.hours?'\\n'+d.hours+'h':''}">${d.dayNum}</div></div>`;
+ return `<div class="wday"><div class="wday-dot ${d.hasLog?(d.inStreak?'streak-day':'has-log'):''} ${iCls} ${d.isToday?'today-ring':''}" title="${d.ds}${d.hours?'\\n'+d.hours+'h':''}"><em>${wd}</em>${d.dayNum}</div></div>`;
  }).join('');
 
  const mm=document.getElementById('moti-msg'); if(mm){ mm.textContent=stats.motiMsg; mm.className='moti-msg'+(stats.atRisk?' at-risk':''); }
@@ -1365,6 +1394,14 @@ function weekDays(){   // 今週の月曜〜日曜（yyyy-mm-dd）
   const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()+6)%7));
   return Array.from({length:7},(_,i)=>{ const x=new Date(d); x.setDate(d.getDate()+i); return dayKey(x); });
 }
+function setHeaderWho(){
+  const st=STUDENT||{}, nm=String(st.name||ME&&ME.displayName||ME&&ME.email||'');
+  const cls=st.grade?`${st.grade}年${st.class?st.class+'組':''}`:'';
+  const el=document.getElementById('hdr-user'); if(!el) return;
+  el.textContent=''; const b=document.createElement('b'); b.textContent=nm; el.appendChild(b);
+  if(cls){ const s=document.createElement('small'); s.textContent=cls; el.appendChild(s); }
+  el.setAttribute('aria-label',headerWho());
+}
 function headerWho(){
   const st=STUDENT||{}, nm=String(st.name||ME&&ME.displayName||ME&&ME.email||'');
   const cls=st.grade?`${st.grade}年${st.class?st.class+'組':''}`:'';
@@ -1477,7 +1514,7 @@ async function initApply(data){
  return;
  }
 
- document.getElementById('hdr-user').textContent=headerWho();
+ setHeaderWho();
  renderEngage();
  loadSeminars();
 
