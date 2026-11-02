@@ -2737,6 +2737,8 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 .cz .cz-who .n { font-size: 22px; font-weight: 800; color: var(--cp-ink); line-height: 1.3; word-break: break-word; }
 .cz .cz-who .t { font-size: 12px; color: var(--cp-text-2); margin-top: 2px; }
 .cz .cz-hero .cz-phase { font-size: 24px; }
+.cz .cz-semname { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 800; color: var(--cp-navy); margin: 0 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--cp-hover); }
+.cz .cz-semname span { font-size: 11px; font-weight: 600; color: var(--cp-text-2); }
 .cz .cz-note { padding: 8px 0; border-bottom: 1px solid var(--cp-hover); }
 .cz .cz-note:last-child { border-bottom: 0; }
 .cz .cz-note .t { font-weight: 700; font-size: 13px; }
@@ -2794,18 +2796,31 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     var syl0 = (h.elearning && h.elearning.syllabus) || [], prog0 = (h.elearning && h.elearning.progress) || [];
     var done0 = prog0.filter(function (v) { return v === 1; }).length, pct0 = syl0.length ? Math.round(done0 / syl0.length * 100) : null;
     // まず「いまの探究」（フェーズ・進み具合・e-learning）を1枚にまとめて出し、そのあとに先生のコメント
-    var phases = (h.phases && h.phases.length) ? h.phases : ['課題設定', '情報収集', '分析・考察', 'まとめ・発表', '振り返り'], curI = phases.indexOf(h.phase);
-    if (member) P.now += '<section><h2><span class="material-symbols-rounded">flag</span>いまの探究</h2><div class="cz-card cz-hero">' +
-      '<div class="cz-phase">' + esc(h.phase || '（フェーズ未設定）') + '</div>' +
-      (h.status ? '<div class="cz-meta">' + esc(h.status) + '</div>' : '') +
-      '<div class="cz-steps" role="list" aria-label="探究のフェーズ">' + phases.map(function (p, i) { return '<div class="cz-step' + (i <= curI ? ' on' : '') + (i === curI ? ' cur' : '') + '" role="listitem"' + (i === curI ? ' aria-current="step"' : '') + '>' + esc(p) + '</div>'; }).join('') + '</div>' +
-      (h.progressPct != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究の進み具合</span><b>' + Math.round(h.progressPct) + '%</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + h.progressPct + '" aria-label="探究の進み具合" style="margin-top:4px"><i style="width:' + Math.max(0, Math.min(100, h.progressPct)) + '%"></i></div>' : '') +
-      (pct0 != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究基礎 e-learning</span><b>' + done0 + ' / ' + syl0.length + '</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct0 + '" aria-label="e-learning の進み具合" style="margin-top:4px"><i style="width:' + pct0 + '%"></i></div>' : '') +
-      '</div></section>';
-    if (member && h.feedback && h.feedback.comment) {
-      P.now += '<section><h2><span class="material-symbols-rounded">forum</span>先生からのコメント</h2><div class="cz-card cz-fb"><b>' + esc(h.feedback.teacherName || '担当') + ' 先生より' + (h.feedback.date ? '（' + esc(h.feedback.date) + ' 更新）' : '') + '</b><p>' + esc(h.feedback.comment) + '</p></div></section>';
+    var phases = (h.phases && h.phases.length) ? h.phases : ['課題設定', '情報収集', '分析・考察', 'まとめ・発表', '振り返り'];
+    // ゼミごと（複数のゼミに入っている生徒は、ゼミごとに別のカードにする）
+    var items = (h.items && h.items.length) ? h.items : (member ? [{ seminar: '', teachers: [], phase: h.phase, progressPct: h.progressPct, status: h.status, feedback: h.feedback }] : []);
+    var multi = items.length > 1;
+    var elBar = pct0 != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究基礎 e-learning</span><b>' + done0 + ' / ' + syl0.length + '</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct0 + '" aria-label="e-learning の進み具合" style="margin-top:4px"><i style="width:' + pct0 + '%"></i></div>' : '';
+    function heroCard(it, withEl) {
+      var curI = phases.indexOf(it.phase), pg = it.progressPct;
+      return '<div class="cz-card cz-hero">' +
+        (multi && it.seminar ? '<div class="cz-semname">' + esc(it.seminar) + (it.teachers && it.teachers.length ? '<span>担当：' + esc(it.teachers.join('・')) + ' 先生</span>' : '') + '</div>' : '') +
+        '<div class="cz-phase">' + esc(it.phase || '（フェーズ未設定）') + '</div>' +
+        (it.status ? '<div class="cz-meta">' + esc(it.status) + '</div>' : '') +
+        '<div class="cz-steps" role="list" aria-label="探究のフェーズ">' + phases.map(function (p, i) { return '<div class="cz-step' + (i <= curI ? ' on' : '') + (i === curI ? ' cur' : '') + '" role="listitem"' + (i === curI ? ' aria-current="step"' : '') + '>' + esc(p) + '</div>'; }).join('') + '</div>' +
+        (pg != null ? '<div class="cz-meta" style="margin-top:10px;display:flex;justify-content:space-between"><span>探究の進み具合</span><b>' + Math.round(pg) + '%</b></div><div class="cz-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pg + '" aria-label="探究の進み具合" style="margin-top:4px"><i style="width:' + Math.max(0, Math.min(100, pg)) + '%"></i></div>' : '') +
+        (withEl ? elBar : '') + '</div>';
     }
-
+    function fbCard(it) {
+      if (!it.feedback || !it.feedback.comment) return '';
+      return '<div class="cz-card cz-fb"><b>' + (multi && it.seminar ? esc(it.seminar) + '　' : '') + esc(it.feedback.teacherName || '担当') + ' 先生より' + (it.feedback.date ? '（' + esc(it.feedback.date) + ' 更新）' : '') + '</b><p>' + esc(it.feedback.comment) + '</p></div>';
+    }
+    // まず「いまの探究」（フェーズ・進み具合）を出し、そのあとに先生のコメント。ゼミが複数なら、ゼミごとに並べる
+    if (member) {
+      P.now += '<section><h2><span class="material-symbols-rounded">flag</span>いまの探究</h2>' + items.map(function (it) { return heroCard(it, !multi); }).join('<div style="height:10px"></div>') + (multi && elBar ? '<div class="cz-card" style="margin-top:10px">' + elBar.replace('margin-top:10px;display:flex', 'display:flex') + '</div>' : '') + '</section>';
+      var fbs = items.map(fbCard).filter(String);
+      if (fbs.length) P.now += '<section><h2><span class="material-symbols-rounded">forum</span>先生からのコメント</h2>' + fbs.join('<div style="height:10px"></div>') + '</section>';
+    }
     var NSHOW = 5;   // お知らせは5件ずつ表示し、「さらに表示」で続きを出す
     if (h.notices && h.notices.length) {
       P.note += '<section><h2><span class="material-symbols-rounded">info</span>学校・ゼミからのお知らせ</h2><div class="cz-card">' +
