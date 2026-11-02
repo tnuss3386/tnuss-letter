@@ -187,6 +187,7 @@
       title: p ? p.title : '',
       body: p ? p.body : '',
       att: p ? p.attachments.slice() : [],
+      attNames: p ? (p.attachmentNames || []).slice() : [],
       files: [],
       tmode: 'ALL', grades: {}, classes: {}, buses: {}, students: {}, pick: '',
       eventOn: !!(p && p.eventDate), eventDate: p ? p.eventDate : '', eventEnd: p ? p.eventEndDate : '',
@@ -299,7 +300,7 @@
     }
     function secAttach() {
       var rows = C.att.map(function (u, i) {
-        return '<div class="file-chip">' + L.icon('clip') + '<span class="name">添付ファイル ' + (i + 1) + '</span><button type="button" class="rm" data-rm-att="' + i + '" aria-label="外す">' + L.icon('xmark') + '</button></div>';
+        return '<div class="file-chip">' + L.icon('clip') + '<span class="name">' + esc((C.attNames || [])[i] || ('添付ファイル ' + (i + 1))) + '</span><button type="button" class="rm" data-rm-att="' + i + '" aria-label="外す">' + L.icon('xmark') + '</button></div>';
       }).join('') + C.files.map(function (f, i) {
         return '<div class="file-chip">' + L.icon('clip') + '<span class="name">' + esc(f.name) + '</span><button type="button" class="rm" data-rm-file="' + i + '" aria-label="外す">' + L.icon('xmark') + '</button></div>';
       }).join('');
@@ -510,7 +511,7 @@
         if (el.getAttribute('data-clear') === 'select') { C.grades = {}; C.classes = {}; C.buses = {}; } else C.students = {};
         drawSec('target'); return;
       }
-      if ((el = e.target.closest('[data-rm-att]'))) { C.att.splice(+el.getAttribute('data-rm-att'), 1); C.dirty = true; drawSec('attach'); return; }
+      if ((el = e.target.closest('[data-rm-att]'))) { var ri = +el.getAttribute('data-rm-att'); C.att.splice(ri, 1); (C.attNames || []).splice(ri, 1); C.dirty = true; drawSec('attach'); return; }
       if ((el = e.target.closest('[data-rm-file]'))) { C.files.splice(+el.getAttribute('data-rm-file'), 1); C.dirty = true; drawSec('attach'); return; }
       if ((el = e.target.closest('[data-rm-q]'))) { C.questions.splice(+el.getAttribute('data-rm-q'), 1); C.dirty = true; drawSec('option'); return; }
       if ((el = e.target.closest('[data-rm-b]'))) { C.blocks.splice(+el.getAttribute('data-rm-b'), 1); C.dirty = true; drawSec('option'); return; }

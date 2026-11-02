@@ -387,8 +387,8 @@
   function attachmentsHtml(p) {
     if (!p.attachments.length) return '';
     return '<div class="section"><div class="group-header">添付ファイル</div><div class="group">' + p.attachments.map(function (url, i) {
-      return '<button class="row" data-act="viewAtt" data-url="' + esc(url) + '" data-n="' + (i + 1) + '"><span class="row-icon">' + L.icon('clip') + '</span>' +
-        '<span class="row-label">添付ファイル ' + (i + 1) + '</span>' + L.icon('chevR', 'chev') + '</button>';
+      return '<button class="row" data-act="viewAtt" data-url="' + esc(url) + '" data-n="' + (i + 1) + '" data-name="' + esc((p.attachmentNames || [])[i] || '') + '"><span class="row-icon">' + L.icon('clip') + '</span>' +
+        '<span class="row-label" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc((p.attachmentNames || [])[i] || ('添付ファイル ' + (i + 1))) + '</span>' + L.icon('chevR', 'chev') + '</button>';
     }).join('') + '</div></div>';
   }
 
@@ -400,7 +400,7 @@
     var id = m[1];
     var sheet = L.ui.sheet({
       full: true, flush: true,
-      title: '添付ファイル ' + el.getAttribute('data-n'),
+      title: el.getAttribute('data-name') || ('添付ファイル ' + el.getAttribute('data-n')),
       left: { label: '保存・共有', onTap: function () { window.open('https://drive.google.com/uc?export=download&id=' + id, '_blank', 'noopener'); } },
       right: { label: '完了', onTap: function (s) { s.close(); } },
       body: L.loadingHtml('添付ファイルを開いています…') + '<iframe class="doc-frame" src="https://drive.google.com/file/d/' + id + '/preview" title="添付ファイル"></iframe>'
