@@ -527,9 +527,17 @@
       }
     }
 
+    // 日本語入力の変換中に再描画すると、入力欄が作り直されて変換が途切れる。確定してから絞り込む
+    function pickSearch(t) {
+      C.pick = t.value; drawSec('target');
+      var n = root.querySelector('#pickQ'); n.focus(); n.setSelectionRange(n.value.length, n.value.length);
+    }
+    root.addEventListener('compositionend', function (e) {
+      if (e.target.id === 'pickQ') pickSearch(e.target);
+    });
     root.addEventListener('input', function (e) {
       var t = e.target, f = t.getAttribute && t.getAttribute('data-f');
-      if (t.id === 'pickQ') { C.pick = t.value; drawSec('target'); var n = root.querySelector('#pickQ'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); return; }
+      if (t.id === 'pickQ') { if (!e.isComposing) pickSearch(t); return; }
       if (!f) return;
       C.dirty = true;
       var qi = t.getAttribute('data-q'), bi = t.getAttribute('data-b');
