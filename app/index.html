@@ -1011,7 +1011,6 @@ html, body, * { touch-action: manipulation; }
    </div>
    <div id="mob-grades-list" style="display:flex;flex-direction:column;gap:10px;">
      <div class="skel" style="height:80px;border-radius:12px;"></div>
-     <div class="skel" style="height:80px;border-radius:12px;"></div>
    </div>
  </div><!-- /tab-grades -->
 
@@ -2386,7 +2385,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
         '<div class="cml-body">' + esc(m.body) + '</div>' +
         '<div class="cml-extra">' +
           (m.optionType ? '<div class="cml-warn">' + (m.optionType === 'survey' ? 'アンケート' : '面談') + 'の回答・予約は、保護者の方が Bridge から行います。</div>' : '') +
-          (atts.length ? '<div class="cml-atts">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span>添付 ' + (i + 1) + '</a>'; }).join('') + '</div>' : '') +
+          (atts.length ? '<div class="cml-atts">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span><span style="min-width:0;max-width:min(60vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc((m.attachmentNames || [])[i] || ('添付ファイル ' + (i + 1))) + '</span></a>'; }).join('') + '</div>' : '') +
         '</div>' + ns + '</div>';
     }
 
@@ -2429,7 +2428,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
             (ev ? '<div class="cml-ev" style="font-size:13px;margin-bottom:8px">' + esc(ev) + '</div>' : '') +
             '<div class="cml-mbody">' + esc(sel.body) + '</div>' +
             (sel.optionType ? '<div class="cml-warn" style="margin-top:12px">' + (sel.optionType === 'survey' ? 'アンケート' : '面談') + 'の回答・予約は、保護者の方が Bridge から行います。</div>' : '') +
-            (atts.length ? '<div class="cml-atts" style="margin-top:14px">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span>添付 ' + (i + 1) + '</a>'; }).join('') + '</div>' : '');
+            (atts.length ? '<div class="cml-atts" style="margin-top:14px">' + atts.map(function (u, i) { return '<a class="btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener"><span class="material-symbols-rounded">attach_file</span><span style="min-width:0;max-width:min(60vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc((sel.attachmentNames || [])[i] || ('添付ファイル ' + (i + 1))) + '</span></a>'; }).join('') + '</div>' : '');
         } else det = '<div class="cml-mempty">左の一覧から、読みたいお知らせを選んでください。</div>';
         var prevScroll = 0; var old = root.querySelector('.cml-mlist'); if (old) prevScroll = old.scrollTop;
         root.innerHTML = bar + '<div class="cml-mail' + (sel ? ' has-sel' : '') + '"><div class="cml-mlist" role="listbox" aria-label="お知らせの一覧">' + rows + '</div><div class="cml-mread">' + det + '</div></div>';
@@ -2478,7 +2477,17 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
       if (e.key !== 'Enter' && e.key !== ' ') return;
       var c = e.target.closest && e.target.closest('.cml-msg'); if (c && e.target === c) { e.preventDefault(); toggle(c); }
     });
-    return { set: function (list, ex) { items = list || []; extra = ex || {}; draw(); }, redraw: draw };
+    return {
+      set: function (list, ex) {
+        items = list || []; extra = ex || {}; draw();
+        if (selId) { var pm = items.filter(function (x) { return String(x.id) === String(selId); })[0]; if (pm && !pm.read && opts.onOpen) { pm.read = true; opts.onOpen(selId, pm); } }   // 先に開く指定をしていた連絡が届いたら、既読にする
+      },
+      redraw: draw,
+      open: function (id) {   // 指定した連絡を開く（他のタブのお知らせから飛んでくるとき）。まだ読み込み前でも、届き次第、開く
+        if (opts.layout === 'mail') selectMail(id);
+        else { openIds[id] = true; selId = id; draw(); var el = root.querySelector('.cml-msg[data-id="' + id + '"]'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
+      }
+    };
   }
 
   /* 生徒の「お知らせ」タブ: cp-inbox（ベル）のデータを、同じ見え方でタブに出す。ベルを押すとこのタブが開く */
@@ -2492,6 +2501,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
       if (typeof window.cpInboxAfter === 'function') { try { window.cpInboxAfter(); } catch (e) {} }   // ページ側の追加表示（トップの未読カードなど）
     }
     window.cpInboxUpdated = refresh;
+    window.cpMsgOpen = function (id) { ml.open(id); };   // ゼミのお知らせなどから、本文へ飛ぶ
     ml.set([], { loading: true });
     refresh();
     return { refresh: refresh };
@@ -2605,7 +2615,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
         (ev ? '<div class="cp-m-ev">' + esc(ev) + '</div>' : '') +
         '<div class="cp-m-body">' + esc(m.body) + '</div>' +
         (m.optionType ? '<div class="cp-m-note">' + (m.optionType === 'survey' ? 'アンケート' : '面談') + 'の回答・予約は、保護者の方が Bridge から行います。</div>' : '') +
-        (atts.length ? '<div class="cp-m-atts">' + atts.map(function (u, i) { return '<a class="cp-m-link btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="material-symbols-rounded">attach_file</span>添付 ' + (i + 1) + '</a>'; }).join('') + '</div>' : '') + '</div>';
+        (atts.length ? '<div class="cp-m-atts">' + atts.map(function (u, i) { return '<a class="cp-m-link btn-secondary" href="' + esc(u) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()"><span class="material-symbols-rounded">attach_file</span><span style="min-width:0;max-width:min(60vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc((m.attachmentNames || [])[i] || ('添付ファイル ' + (i + 1))) + '</span></a>'; }).join('') + '</div>' : '') + '</div>';
     }).join('');
   }
 
@@ -2732,6 +2742,10 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
 .cz .cz-note .t { font-weight: 700; font-size: 13px; }
 .cz .cz-note .d { font-size: 11px; color: var(--cp-muted); }
 .cz .cz-note .c { font-size: 13px; color: var(--cp-text-2); white-space: pre-wrap; word-break: break-word; }
+.cz .cz-note[data-nid] { cursor: pointer; border-radius: 10px; padding-left: 6px; padding-right: 6px; }
+.cz .cz-note[data-nid]:hover, .cz .cz-note[data-nid]:focus-visible { background: var(--cp-tint-soft); outline: none; }
+.cz .cz-note[data-nid] .c { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }   /* 一覧では2行まで。本文は、タップして開く */
+.cz .cz-note .cz-go { float: right; color: var(--cp-muted); font-weight: 400; }
 .cz details { border: 1px solid var(--cp-border); border-radius: var(--cp-r-md); background: var(--cp-surface); margin-bottom: 8px; }
 .cz summary { cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: 13px; color: var(--cp-ink); list-style: none; display: flex; align-items: center; gap: 8px; }
 .cz summary::-webkit-details-marker { display: none; }
@@ -2795,7 +2809,7 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
     var NSHOW = 5;   // お知らせは5件ずつ表示し、「さらに表示」で続きを出す
     if (h.notices && h.notices.length) {
       P.note += '<section><h2><span class="material-symbols-rounded">info</span>学校・ゼミからのお知らせ</h2><div class="cz-card">' +
-        h.notices.map(function (n, i) { return '<div class="cz-note"' + (i >= NSHOW ? ' hidden' : '') + '><div class="d">' + esc(n.date) + ' ・ ' + esc(n.category) + '</div><div class="t">' + esc(n.title) + '</div><div class="c">' + esc(n.content) + '</div></div>'; }).join('') + '</div>' +
+        h.notices.map(function (n, i) { return '<div class="cz-note"' + (i >= NSHOW ? ' hidden' : '') + (n.id ? ' role="button" tabindex="0" data-nid="' + esc(n.id) + '" aria-label="' + esc(n.title) + '（タップで本文を開く）"' : '') + '><div class="d">' + esc(n.date) + ' ・ ' + esc(n.category) + '</div><div class="t">' + esc(n.title) + (n.id ? '<span class="cz-go" aria-hidden="true">›</span>' : '') + '</div><div class="c">' + esc(n.content) + '</div></div>'; }).join('') + '</div>' +
         (h.notices.length > NSHOW ? '<button type="button" class="btn-secondary cp-keep cz-more" style="width:100%;margin-top:10px">さらに表示（残り ' + (h.notices.length - NSHOW) + ' 件）</button>' : '') + '</section>';
     }
 
@@ -2833,6 +2847,8 @@ body.cp-has-sidenav .cml-back, .cml-back { display: none !important; margin-bott
       TABS.map(function (t) { return '<div class="cz-panel" role="tabpanel" data-p="' + t[0] + '"' + (t[0] === cur ? '' : ' hidden') + '>' + (P[t[0]] || '<div class="cz-empty" style="padding:24px 0;text-align:center">まだ表示するものがありません。</div>') + '</div>'; }).join('');
     root.innerHTML = '<div class="cz">' + out + '</div>';
     root.addEventListener('click', function (e) {
+      var nt = e.target.closest('.cz-note[data-nid]');   // お知らせをタップ → お知らせタブで、その本文を開く
+      if (nt) { var nid = nt.getAttribute('data-nid'); if (window.cpInboxTab) { cpInboxTab(); setTimeout(function () { if (window.cpMsgOpen) cpMsgOpen(nid); }, 0); } return; }
       var mo = e.target.closest('.cz-more'); if (!mo) return;
       var hid = root.querySelectorAll('.cz-note[hidden]'); for (var k = 0; k < hid.length && k < NSHOW; k++) hid[k].hidden = false;
       var left = root.querySelectorAll('.cz-note[hidden]').length; if (left) mo.textContent = 'さらに表示（残り ' + left + ' 件）'; else mo.remove();
