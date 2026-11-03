@@ -1,5 +1,5 @@
 // ★ GASで発行した「ウェブアプリのURL」（https://script.google.com/macros/s/.../exec）に置き換えてください
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbw3Ugm9G5AvbHcL68iHzj-9l0E28s2GUzpHIYqzNuYeL5M4z1ySFx_KA1A6G8uzIg7eXg/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbya8MiKHmulBVdjFcqmBBiRJCMIcDrmf7mIHxQmHII2sM8Es_iSR9HQV6sW5t12uE-Mfg/exec';
 
 // ★ 教員の「Googleでログイン」を使う場合の OAuth クライアントID（Google Cloud の「認証情報」→ ウェブ アプリケーション。
 //   承認済みの JavaScript 生成元に、このアプリの URL（https://○○.github.io）を登録）。GAS 側の GOOGLE_CLIENT_ID と同じ値にします。
