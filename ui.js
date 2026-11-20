@@ -75,6 +75,11 @@
     var n = withNum !== false && c.num !== undefined && String(c.num).trim() !== '' ? String(c.num).trim() + '番' : '';
     return L.fmt.grade(c.grade) + L.fmt.klass(c.klass) + n;
   };
+  // 検索用に、文字をそろえる（ひらがな／カタカナ、大文字／小文字、全角／半角、空白の違いを無視する）
+  L.normSearch = function (str) {
+    return String(str == null ? '' : str).normalize('NFKC').replace(/[\s\u3000]+/g, '').toLowerCase()
+      .replace(/[\u3041-\u3096]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) + 0x60); });
+  };
   L.today = function () { return L.fmt.ymd(new Date()); };
 
   // 日本時間の「日付＋時刻」と ISO の相互変換（端末の時刻設定に左右されないようにする）

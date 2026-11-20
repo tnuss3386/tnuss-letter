@@ -333,8 +333,9 @@
         h += '<div class="group-footer">' + targetSummary() + '　<button type="button" class="link-btn" data-clear="select">すべて解除</button></div>';
       } else {
         var q = C.pick.trim().toLowerCase();
-        var list = S.students.filter(function (s) { return !q || (s.name + s.grade + s.klass).toLowerCase().indexOf(q) !== -1; });
-        h += '<div class="group"><div class="pick-search"><input type="search" id="pickQ" placeholder="名前で検索" value="' + esc(C.pick) + '"></div><div class="pick-list">' +
+        var nq = L.normSearch(q);
+        var list = S.students.filter(function (s) { return !nq || L.normSearch(s.name + ' ' + (s.kana || '') + ' ' + (s.romaji || '') + ' ' + L.fmt.cls(s) + ' ' + s.grade + s.klass).indexOf(nq) !== -1; });
+        h += '<div class="group"><div class="pick-search"><input type="search" id="pickQ" placeholder="名前・フリガナで検索" value="' + esc(C.pick) + '"></div><div class="pick-list">' +
           list.slice(0, 120).map(function (s) {
             return opt(esc(s.name) + '　<small style="color:var(--label-2)">' + esc(L.fmt.cls(s)) + '</small>', !!C.students[s.id], 'data-stu="' + esc(s.id) + '"');
           }).join('') + (list.length > 120 ? '<div class="row-wrap" style="color:var(--label-2)">ほか' + (list.length - 120) + '名（検索で絞り込めます）</div>' : '') + '</div></div>' +
